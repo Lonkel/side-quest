@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <style>
+        :root {
+            --color-primary: #2180d3;
+            --color-primary-hover: #1a6ab3;
+            --color-success: #2db89a;
+            --color-error: #c01527;
+            --color-bg: #fcfcf9;
+            --color-surface: #ffffff;
+            --color-text: #134252;
+            --color-text-secondary: #626c71;
+            --color-border: #5e5240;
+            --radius-base: 8px;
+            --space-8: 8px;
+            --space-16: 16px;
+            --space-24: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: var(--space-24);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 var(--space-24) 0;
+            font-size: 28px;
+        }
+
+        .form-section {
+            background-color: var(--color-surface);
+            padding: var(--space-24);
+            border-radius: var(--radius-base);
+            margin-bottom: var(--space-24);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-16);
+            margin-bottom: var(--space-16);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: var(--space-8);
+            font-size: 14px;
+        }
+
+        input, select {
+            padding: var(--space-8) var(--space-16);
+            border: 1px solid rgba(94, 82, 64, 0.2);
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-family: inherit;
+            background-color: var(--color-surface);
+            color: var(--color-text);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(33, 128, 141, 0.15);
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--space-8);
+        }
+
+        button {
+            padding: var(--space-8) var(--space-16);
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 150ms ease;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: #fcfcf9;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: rgba(94, 82, 64, 0.12);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(94, 82, 64, 0.2);
+        }
+
+        .table-section {
+            background-color: var(--color-surface);
+            padding: var(--space-24);
+            border-radius: var(--radius-base);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background-color: rgba(94, 82, 64, 0.08);
+            border-bottom: 2px solid rgba(94, 82, 64, 0.2);
+        }
+
+        th {
+            padding: var(--space-12) var(--space-16);
+            text-align: left;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        td {
+            padding: var(--space-12) var(--space-16);
+            border-bottom: 1px solid rgba(94, 82, 64, 0.12);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(94, 82, 64, 0.04);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-food {
+            background-color: rgba(255, 84, 89, 0.15);
+            color: #c01527;
+        }
+
+        .badge-transport {
+            background-color: rgba(50, 184, 198, 0.15);
+            color: #2db89a;
+        }
+
+        .badge-entertainment {
+            background-color: rgba(230, 129, 97, 0.15);
+            color: #a84b2f;
+        }
+
+        .badge-utilities {
+            background-color: rgba(230, 129, 97, 0.15);
+            color: #a84b2f;
+        }
+
+        .badge-other {
+            background-color: rgba(98, 108, 113, 0.15);
+            color: #626c71;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-8);
+        }
+
+        .btn-delete {
+            background-color: rgba(192, 21, 47, 0.12);
+            color: var(--color-error);
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .btn-delete:hover {
+            background-color: rgba(192, 21, 47, 0.2);
+        }
+
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-16);
+            margin-bottom: var(--space-24);
+        }
+
+        .summary-card {
+            background-color: var(--color-surface);
+            padding: var(--space-16);
+            border-radius: var(--radius-base);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-8);
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-24);
+            color: var(--color-text-secondary);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: var(--space-16);
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: var(--space-8) var(--space-12);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Ausgaben Tracker</h1>
+
+        <div class="summary-section">
+            <div class="summary-card">
+                <div class="summary-label">Gesamt Ausgaben (heute)</div>
+                <div class="summary-value" id="totalToday">€0,00</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Gesamt Ausgaben (diesen Monat)</div>
+                <div class="summary-value" id="totalMonth">€0,00</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Durchschnitt pro Tag</div>
+                <div class="summary-value" id="avgPerDay">€0,00</div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Neue Ausgabe hinzufügen</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="date">Datum</label>
+                    <input type="date" id="date" />
+                </div>
+                <div class="form-group">
+                    <label for="category">Kategorie</label>
+                    <select id="category">
+                        <option value="">-- Kategorie wählen --</option>
+                        <option value="food">🍔 Essen & Getränke</option>
+                        <option value="transport">🚗 Mobilität</option>
+                        <option value="entertainment">🎬 Unterhaltung</option>
+                        <option value="utilities">💡 Nebenkosten</option>
+                        <option value="other">📌 Sonstiges</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Betrag (€)</label>
+                    <input type="number" id="amount" step="0.01" min="0" placeholder="0,00" />
+                </div>
+                <div class="form-group">
+                    <label for="description">Beschreibung</label>
+                    <input type="text" id="description" placeholder="z.B. Lebensmittel" />
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="addExpense()">Hinzufügen</button>
+                <button class="btn-secondary" onclick="clearForm()">Zurücksetzen</button>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Ausgaben</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Kategorie</th>
+                        <th>Beschreibung</th>
+                        <th class="text-right">Betrag</th>
+                        <th class="text-right">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTable">
+                    <tr class="empty-state">
+                        <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let expenses = [];
+
+        // Setze Datum auf heute
+        document.getElementById('date').valueAsDate = new Date();
+
+        function addExpense() {
+            const date = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+
+            if (!date || !category || isNaN(amount) || amount <= 0) {
+                alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+                return;
+            }
+
+            expenses.push({
+                id: Date.now(),
+                date,
+                category,
+                amount,
+                description
+            });
+
+            clearForm();
+            renderTable();
+            updateSummary();
+        }
+
+        function deleteExpense(id) {
+            expenses = expenses.filter(e => e.id !== id);
+            renderTable();
+            updateSummary();
+        }
+
+        function clearForm() {
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('category').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        function getCategoryBadgeClass(category) {
+            return `badge-${category}`;
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                food: '🍔 Essen & Getränke',
+                transport: '🚗 Mobilität',
+                entertainment: '🎬 Unterhaltung',
+                utilities: '💡 Nebenkosten',
+                other: '📌 Sonstiges'
+            };
+            return labels[category] || category;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR'
+            }).format(value);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('expenseTable');
+            
+            if (expenses.length === 0) {
+                tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
+                return;
+            }
+
+            // Sortiere nach Datum (neueste zuerst)
+            const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            tbody.innerHTML = sorted.map(expense => `
+                <tr>
+                    <td>${new Date(expense.date).toLocaleDateString('de-DE')}</td>
+                    <td>
+                        <span class="status-badge ${getCategoryBadgeClass(expense.category)}">
+                            ${getCategoryLabel(expense.category)}
+                        </span>
+                    </td>
+                    <td>${expense.description}</td>
+                    <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
+                    <td class="text-right action-buttons">
+                        <button class="btn-delete" onclick="deleteExpense(${expense.id})">Löschen</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSummary() {
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            const todayExpenses = expenses
+                .filter(e => e.date === today)
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            const monthExpenses = expenses
+                .filter(e => e.date.startsWith(currentMonth))
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+            const avgPerDay = monthExpenses / daysInMonth;
+
+            document.getElementById('totalToday').textContent = formatCurrency(todayExpenses);
+            document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
+            document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
+        }
+
+        // Initiales Rendering
+        renderTable();
+        updateSummary();
+    </script>
+</body>
+</html>
