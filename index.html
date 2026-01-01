@@ -302,14 +302,10 @@
                     <label for="amount">Betrag (€)</label>
                     <input type="number" id="amount" step="0.01" min="0" placeholder="0,00" />
                 </div>
-                <div class="form-group">
-                    <label for="description">Beschreibung</label>
-                    <input type="text" id="description" placeholder="z.B. Lebensmittel" />
-                </div>
             </div>
             <div class="button-group">
-                <button class="btn-primary" onclick="addExpense()" ${isLoading ? 'disabled' : ''} id="submitBtn">Hinzufügen</button>
-                <button class="btn-secondary" onclick="clearForm()" ${isLoading ? 'disabled' : ''}>Zurücksetzen</button>
+                <button class="btn-primary" onclick="addExpense()" id="submitBtn">Hinzufügen</button>
+                <button class="btn-secondary" onclick="clearForm()">Zurücksetzen</button>
             </div>
         </div>
 
@@ -320,72 +316,49 @@
                     <tr>
                         <th>Datum</th>
                         <th>Kategorie</th>
-                        <th>Beschreibung</th>
                         <th class="text-right">Betrag</th>
                         <th class="text-right">Aktion</th>
                     </tr>
                 </thead>
                 <tbody id="expenseTable">
                     <tr class="empty-state">
-                        <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
+                        <td colspan="4">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase Konfiguration
-        const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://sazcythsqpynnsifndja.supabase.com';
-        const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_DIoKeeg_btbba8BuoEYN5A_f4wo6MWL';
+        const SUPABASE_URL = 'https://sazcythsqpynnsifndja.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_DIoKeeg_btbba8BuoEYN5A_f4wo6MWL';
 
-        let expenses = [];
-        let isLoading = false;
-
-        // Supabase Client
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Setze Datum auf heute
+        let expenses = [];
+
+        // Init
         document.getElementById('date').valueAsDate = new Date();
+        loadExpenses();
 
-        // Lade Ausgaben beim Start
-        window.addEventListener('DOMContentLoaded', () => {
-            loadExpenses();
-            setupAuthListener();
-        });
-
-        // Auth-Status überwachen
-        function setupAuthListener() {
-            supabase.auth.onAuthStateChange((event, session) => {
-                if (!session) {
-                    alert('Bitte melde dich an, um Ausgaben zu speichern.');
-                } else {
-                    loadExpenses();
-                }
-            });
-        }
-
-        // Lade alle Ausgaben von Supabase
         async function loadExpenses() {
-            if (isLoading) return;
-            isLoading = true;
-
             try {
                 const { data, error } = await supabase
                     .from('expenses')
                     .select('*')
                     .order('date', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Fehler beim Laden:', error);
+                    return;
+                }
 
                 expenses = data || [];
                 renderTable();
                 updateSummary();
-            } catch (error) {
-                console.error('Fehler beim Laden:', error);
-                alert('Fehler beim Laden der Ausgaben: ' + error.message);
-            } finally {
-                isLoading = false;
+            } catch (err) {
+                console.error('Exception:', err);
             }
         }
 
@@ -393,57 +366,53 @@
             const date = document.getElementById('date').value;
             const category = document.getElementById('category').value;
             const amount = parseFloat(document.getElementById('amount').value);
-            const description = document.getElementById('description').value;
 
             if (!date || !category || isNaN(amount) || amount <= 0) {
                 alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
                 return;
             }
 
-            if (isLoading) return;
-            isLoading = true;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
 
             try {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('expenses')
-                    .insert({
-                        date,
-                        category,
-                        amount,
-                        description
-                    })
-                    .select();
+                    .insert([{ date, category, amount }]);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Fehler beim Speichern:', error);
+                    alert('Fehler beim Speichern: ' + error.message);
+                    return;
+                }
 
                 clearForm();
-                loadExpenses();
-            } catch (error) {
-                console.error('Fehler beim Speichern:', error);
-                alert('Fehler beim Speichern: ' + error.message);
+                await loadExpenses();
+            } catch (err) {
+                console.error('Exception:', err);
+                alert('Fehler: ' + err.message);
             } finally {
-                isLoading = false;
+                submitBtn.disabled = false;
             }
         }
 
         async function deleteExpense(id) {
-            if (isLoading) return;
-            isLoading = true;
-
             try {
                 const { error } = await supabase
                     .from('expenses')
                     .delete()
                     .eq('id', id);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Fehler beim Löschen:', error);
+                    alert('Fehler beim Löschen: ' + error.message);
+                    return;
+                }
 
-                loadExpenses();
-            } catch (error) {
-                console.error('Fehler beim Löschen:', error);
-                alert('Fehler beim Löschen: ' + error.message);
-            } finally {
-                isLoading = false;
+                await loadExpenses();
+            } catch (err) {
+                console.error('Exception:', err);
+                alert('Fehler: ' + err.message);
             }
         }
 
@@ -451,7 +420,6 @@
             document.getElementById('date').valueAsDate = new Date();
             document.getElementById('category').value = '';
             document.getElementById('amount').value = '';
-            document.getElementById('description').value = '';
         }
 
         function getCategoryBadgeClass(category) {
@@ -478,86 +446,9 @@
 
         function renderTable() {
             const tbody = document.getElementById('expenseTable');
-            
+
             if (expenses.length === 0) {
-                tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
-                return;
-            }
-
-            // Sortiere nach Datum (neueste zuerst)
-            const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            tbody.innerHTML = sorted.map(expense => `
-                <tr>
-                    <td>${new Date(expense.date).toLocaleDateString('de-DE')}</td>
-                    <td>
-                        <span class="status-badge ${getCategoryBadgeClass(expense.category)}">
-                            ${getCategoryLabel(expense.category)}
-                        </span>
-                    </td>
-                    <td>${expense.description}</td>
-                    <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
-                    <td class="text-right action-buttons">
-                        <button class="btn-delete" onclick="deleteExpense(${expense.id})" ${isLoading ? 'disabled' : ''}>Löschen</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateSummary() {
-            const today = new Date().toISOString().split('T')[0];
-            const currentMonth = new Date().toISOString().slice(0, 7);
-
-            const todayExpenses = expenses
-                .filter(e => e.date === today)
-                .reduce((sum, e) => sum + e.amount, 0);
-
-            const monthExpenses = expenses
-                .filter(e => e.date.startsWith(currentMonth))
-                .reduce((sum, e) => sum + e.amount, 0);
-
-            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-            const avgPerDay = monthExpenses / daysInMonth;
-
-            document.getElementById('totalToday').textContent = formatCurrency(todayExpenses);
-            document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
-            document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
-        }
-
-        function clearForm() {
-            document.getElementById('date').valueAsDate = new Date();
-            document.getElementById('category').value = '';
-            document.getElementById('amount').value = '';
-            document.getElementById('description').value = '';
-        }
-
-        function getCategoryBadgeClass(category) {
-            return `badge-${category}`;
-        }
-
-        function getCategoryLabel(category) {
-            const labels = {
-                food: '🍔 Essen & Getränke',
-                transport: '🚗 Mobilität',
-                entertainment: '🎬 Unterhaltung',
-                utilities: '💡 Nebenkosten',
-                other: '📌 Sonstiges'
-            };
-            return labels[category] || category;
-        }
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('de-DE', {
-                style: 'currency',
-                currency: 'EUR'
-            }).format(value);
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('expenseTable');
-            
-            if (expenses.length === 0) {
-                tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
+                tbody.innerHTML = '<tr class="empty-state"><td colspan="4">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
                 return;
             }
 
@@ -569,10 +460,9 @@
                             ${getCategoryLabel(expense.category)}
                         </span>
                     </td>
-                    <td>${expense.description || '-'}</td>
                     <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
                     <td class="text-right action-buttons">
-                        <button class="btn-delete" onclick="deleteExpense(${expense.id})" ${isLoading ? 'disabled' : ''}>Löschen</button>
+                        <button class="btn-delete" onclick="deleteExpense(${expense.id})">Löschen</button>
                     </td>
                 </tr>
             `).join('');
@@ -598,6 +488,5 @@
             document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
