@@ -308,8 +308,8 @@
                 </div>
             </div>
             <div class="button-group">
-                <button class="btn-primary" onclick="addExpense()">Hinzufügen</button>
-                <button class="btn-secondary" onclick="clearForm()">Zurücksetzen</button>
+                <button class="btn-primary" onclick="addExpense()" ${isLoading ? 'disabled' : ''} id="submitBtn">Hinzufügen</button>
+                <button class="btn-secondary" onclick="clearForm()" ${isLoading ? 'disabled' : ''}>Zurücksetzen</button>
             </div>
         </div>
 
@@ -335,12 +335,61 @@
     </div>
 
     <script>
+        // Supabase Konfiguration
+        const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+        const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+
         let expenses = [];
+        let isLoading = false;
+
+        // Supabase Client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Setze Datum auf heute
         document.getElementById('date').valueAsDate = new Date();
 
-        function addExpense() {
+        // Lade Ausgaben beim Start
+        window.addEventListener('DOMContentLoaded', () => {
+            loadExpenses();
+            setupAuthListener();
+        });
+
+        // Auth-Status überwachen
+        function setupAuthListener() {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (!session) {
+                    alert('Bitte melde dich an, um Ausgaben zu speichern.');
+                } else {
+                    loadExpenses();
+                }
+            });
+        }
+
+        // Lade alle Ausgaben von Supabase
+        async function loadExpenses() {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const { data, error } = await supabase
+                    .from('expenses')
+                    .select('*')
+                    .order('date', { ascending: false });
+
+                if (error) throw error;
+
+                expenses = data || [];
+                renderTable();
+                updateSummary();
+            } catch (error) {
+                console.error('Fehler beim Laden:', error);
+                alert('Fehler beim Laden der Ausgaben: ' + error.message);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        async function addExpense() {
             const date = document.getElementById('date').value;
             const category = document.getElementById('category').value;
             const amount = parseFloat(document.getElementById('amount').value);
@@ -351,23 +400,51 @@
                 return;
             }
 
-            expenses.push({
-                id: Date.now(),
-                date,
-                category,
-                amount,
-                description
-            });
+            if (isLoading) return;
+            isLoading = true;
 
-            clearForm();
-            renderTable();
-            updateSummary();
+            try {
+                const { data, error } = await supabase
+                    .from('expenses')
+                    .insert({
+                        date,
+                        category,
+                        amount,
+                        description
+                    })
+                    .select();
+
+                if (error) throw error;
+
+                clearForm();
+                loadExpenses();
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+                alert('Fehler beim Speichern: ' + error.message);
+            } finally {
+                isLoading = false;
+            }
         }
 
-        function deleteExpense(id) {
-            expenses = expenses.filter(e => e.id !== id);
-            renderTable();
-            updateSummary();
+        async function deleteExpense(id) {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const { error } = await supabase
+                    .from('expenses')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                loadExpenses();
+            } catch (error) {
+                console.error('Fehler beim Löschen:', error);
+                alert('Fehler beim Löschen: ' + error.message);
+            } finally {
+                isLoading = false;
+            }
         }
 
         function clearForm() {
@@ -421,7 +498,7 @@
                     <td>${expense.description}</td>
                     <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
                     <td class="text-right action-buttons">
-                        <button class="btn-delete" onclick="deleteExpense(${expense.id})">Löschen</button>
+                        <button class="btn-delete" onclick="deleteExpense(${expense.id})" ${isLoading ? 'disabled' : ''}>Löschen</button>
                     </td>
                 </tr>
             `).join('');
@@ -447,9 +524,80 @@
             document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
         }
 
-        // Initiales Rendering
-        renderTable();
-        updateSummary();
+        function clearForm() {
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('category').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        function getCategoryBadgeClass(category) {
+            return `badge-${category}`;
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                food: '🍔 Essen & Getränke',
+                transport: '🚗 Mobilität',
+                entertainment: '🎬 Unterhaltung',
+                utilities: '💡 Nebenkosten',
+                other: '📌 Sonstiges'
+            };
+            return labels[category] || category;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR'
+            }).format(value);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('expenseTable');
+            
+            if (expenses.length === 0) {
+                tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = expenses.map(expense => `
+                <tr>
+                    <td>${new Date(expense.date).toLocaleDateString('de-DE')}</td>
+                    <td>
+                        <span class="status-badge ${getCategoryBadgeClass(expense.category)}">
+                            ${getCategoryLabel(expense.category)}
+                        </span>
+                    </td>
+                    <td>${expense.description || '-'}</td>
+                    <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
+                    <td class="text-right action-buttons">
+                        <button class="btn-delete" onclick="deleteExpense(${expense.id})" ${isLoading ? 'disabled' : ''}>Löschen</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSummary() {
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            const todayExpenses = expenses
+                .filter(e => e.date === today)
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            const monthExpenses = expenses
+                .filter(e => e.date.startsWith(currentMonth))
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+            const avgPerDay = monthExpenses / daysInMonth;
+
+            document.getElementById('totalToday').textContent = formatCurrency(todayExpenses);
+            document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
+            document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
+        }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
