@@ -149,8 +149,17 @@
       border-bottom: 1px solid rgba(94, 82, 64, 0.12);
     }
 
+    tbody tr {
+      cursor: grab;
+    }
+
     tbody tr:hover {
       background-color: rgba(94, 82, 64, 0.04);
+    }
+
+    tbody tr.dragging {
+      opacity: 0.5;
+      background-color: rgba(94, 82, 64, 0.2);
     }
 
     .text-right {
@@ -193,17 +202,37 @@
     .action-buttons {
       display: flex;
       gap: var(--space-8);
+      align-items: center;
     }
 
-    .btn-delete {
-      background-color: rgba(192, 21, 47, 0.12);
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      transition: transform 150ms ease;
+    }
+
+    .icon-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .icon-delete {
       color: var(--color-error);
-      padding: 4px 8px;
-      font-size: 12px;
     }
 
-    .btn-delete:hover {
-      background-color: rgba(192, 21, 47, 0.2);
+    .icon-edit {
+      color: var(--color-primary);
+    }
+
+    .icon-drag {
+      color: var(--color-text-secondary);
+      cursor: grab;
+    }
+
+    .icon-drag:active {
+      cursor: grabbing;
     }
 
     .summary-section {
@@ -238,6 +267,43 @@
       color: var(--color-text-secondary);
     }
 
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--color-surface);
+      padding: var(--space-24);
+      border-radius: var(--radius-base);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .modal-header {
+      margin-bottom: var(--space-16);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: var(--space-8);
+      margin-top: var(--space-16);
+    }
+
     @media (max-width: 640px) {
       body {
         padding: var(--space-16);
@@ -257,6 +323,10 @@
 
       th, td {
         padding: var(--space-8) var(--space-12);
+      }
+
+      .icon-btn {
+        font-size: 16px;
       }
     }
   </style>
@@ -314,41 +384,78 @@
       <table>
         <thead>
           <tr>
+            <th></th>
             <th>Datum</th>
             <th>Kategorie</th>
             <th class="text-right">Betrag</th>
             <th class="text-right">Aktion</th>
           </tr>
         </thead>
-        <tbody id="expenseTable">
+        <tbody id="expenseTable" draggable="false">
           <tr class="empty-state">
-            <td colspan="4">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
+            <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Supabase CDN zuerst laden -->
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Ausgabe bearbeiten</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="editDate">Datum</label>
+          <input type="date" id="editDate" />
+        </div>
+        <div class="form-group">
+          <label for="editCategory">Kategorie</label>
+          <select id="editCategory">
+            <option value="">-- Kategorie wählen --</option>
+            <option value="food">🍔 Essen & Getränke</option>
+            <option value="transport">🚗 Mobilität</option>
+            <option value="entertainment">🎬 Unterhaltung</option>
+            <option value="utilities">💡 Nebenkosten</option>
+            <option value="other">📌 Sonstiges</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editAmount">Betrag (€)</label>
+          <input type="number" id="editAmount" step="0.01" min="0" placeholder="0,00" />
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-primary" id="saveBtn">Speichern</button>
+        <button class="btn-secondary" id="cancelBtn">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Deine App-Logik danach -->
+  <!-- App Logic -->
   <script>
     // Supabase Konfiguration
     const SUPABASE_URL = 'https://sazcythsqpynnsifndja.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_DIoKeeg_btbba8BuoEYN5A_f4wo6MWL';
 
-    const { createClient } = supabase; // aus globalem supabase-Objekt holen [web:2]
+    const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let expenses = [];
     let isLoading = false;
+    let editingId = null;
+    let draggedRow = null;
 
     // DOM ready
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('date').valueAsDate = new Date();
       document.getElementById('submitBtn').addEventListener('click', addExpense);
       document.getElementById('resetBtn').addEventListener('click', clearForm);
+      document.getElementById('saveBtn').addEventListener('click', saveEdit);
+      document.getElementById('cancelBtn').addEventListener('click', closeModal);
       loadExpenses();
     });
 
@@ -376,7 +483,7 @@
     }
 
     async function addExpense(event) {
-      event.preventDefault(); // wichtig, falls Button in Form steckt
+      event.preventDefault();
 
       const date = document.getElementById('date').value;
       const category = document.getElementById('category').value;
@@ -389,16 +496,16 @@
 
       if (isLoading) return;
       isLoading = true;
+      document.getElementById('submitBtn').disabled = true;
 
       try {
-        const { data, error } = await db
+        const { error } = await db
           .from('expenses')
           .insert({
             date,
             category,
             amount
-          })
-          .select();
+          });
 
         if (error) throw error;
 
@@ -409,11 +516,67 @@
         alert('Fehler beim Speichern: ' + error.message);
       } finally {
         isLoading = false;
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function openEditModal(id) {
+      const expense = expenses.find(e => e.id === id);
+      if (!expense) return;
+
+      editingId = id;
+      document.getElementById('editDate').value = expense.date;
+      document.getElementById('editCategory').value = expense.category;
+      document.getElementById('editAmount').value = expense.amount;
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+      editingId = null;
+    }
+
+    async function saveEdit() {
+      if (!editingId) return;
+
+      const date = document.getElementById('editDate').value;
+      const category = document.getElementById('editCategory').value;
+      const amount = parseFloat(document.getElementById('editAmount').value);
+
+      if (!date || !category || isNaN(amount) || amount <= 0) {
+        alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+        return;
+      }
+
+      if (isLoading) return;
+      isLoading = true;
+
+      try {
+        const { error } = await db
+          .from('expenses')
+          .update({
+            date,
+            category,
+            amount
+          })
+          .eq('id', editingId);
+
+        if (error) throw error;
+
+        closeModal();
+        await loadExpenses();
+      } catch (error) {
+        console.error('Fehler beim Aktualisieren:', error);
+        alert('Fehler beim Aktualisieren: ' + error.message);
+      } finally {
+        isLoading = false;
       }
     }
 
     async function deleteExpense(id) {
       if (isLoading) return;
+      if (!confirm('Wirklich löschen?')) return;
+
       isLoading = true;
 
       try {
@@ -466,14 +629,17 @@
       const tbody = document.getElementById('expenseTable');
 
       if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = '<tr class="empty-state"><td colspan="4">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
+        tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
         return;
       }
 
       const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
 
       tbody.innerHTML = sorted.map(expense => `
-        <tr>
+        <tr draggable="true" data-id="${expense.id}">
+          <td style="text-align: center; cursor: grab;">
+            <span class="icon-drag">⋮⋮</span>
+          </td>
           <td>${new Date(expense.date).toLocaleDateString('de-DE')}</td>
           <td>
             <span class="status-badge ${getCategoryBadgeClass(expense.category)}">
@@ -482,10 +648,54 @@
           </td>
           <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
           <td class="text-right action-buttons">
-            <button class="btn-delete" onclick="deleteExpense(${expense.id})" ${isLoading ? 'disabled' : ''}>Löschen</button>
+            <button class="icon-btn icon-delete" onclick="deleteExpense(${expense.id})" title="Löschen">✕</button>
+            <button class="icon-btn icon-edit" onclick="openEditModal(${expense.id})" title="Bearbeiten">✎</button>
           </td>
         </tr>
       `).join('');
+
+      // Drag & Drop Events
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('drop', handleDrop);
+        row.addEventListener('dragend', handleDragEnd);
+      });
+    }
+
+    function handleDragStart(e) {
+      draggedRow = this;
+      this.classList.add('dragging');
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      if (this !== draggedRow) {
+        this.style.opacity = '0.7';
+      }
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      if (this !== draggedRow) {
+        const allRows = Array.from(document.querySelectorAll('#expenseTable tr'));
+        const draggedIndex = allRows.indexOf(draggedRow);
+        const targetIndex = allRows.indexOf(this);
+
+        if (draggedIndex < targetIndex) {
+          this.parentNode.insertBefore(draggedRow, this.nextSibling);
+        } else {
+          this.parentNode.insertBefore(draggedRow, this);
+        }
+      }
+    }
+
+    function handleDragEnd(e) {
+      this.classList.remove('dragging');
+      const allRows = document.querySelectorAll('#expenseTable tr');
+      allRows.forEach(row => row.style.opacity = '1');
+      draggedRow = null;
     }
 
     function updateSummary() {
@@ -508,8 +718,9 @@
       document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
     }
 
-    // deleteExpense global machen für onclick
+    // Global Functions
     window.deleteExpense = deleteExpense;
+    window.openEditModal = openEditModal;
   </script>
 </body>
 </html>
