@@ -482,43 +482,45 @@
       }
     }
 
-    async function addExpense(event) {
-      event.preventDefault();
+async function addExpense(event) {
+  event.preventDefault();
 
-      const date = document.getElementById('date').value;
-      const category = document.getElementById('category').value;
-      const amount = parseFloat(document.getElementById('amount').value);
+  const date = document.getElementById('date').value;
+  const category = document.getElementById('category').value;
+  const amount = parseFloat(document.getElementById('amount').value);
 
-      if (!date || !category || isNaN(amount) || amount <= 0) {
-        alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
-        return;
-      }
+  if (!date || !category || isNaN(amount) || amount <= 0) {
+    alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+    return;
+  }
 
-      if (isLoading) return;
-      isLoading = true;
-      document.getElementById('submitBtn').disabled = true;
+  if (isLoading) return;
+  isLoading = true;
+  document.getElementById('submitBtn').disabled = true;
 
-      try {
-        const { error } = await db
-          .from('expenses')
-          .insert({
-            date,
-            category,
-            amount
-          });
+  try {
+    const { error } = await db
+      .from('expenses')
+      .insert({
+        date,
+        category,
+        amount
+      });
 
-        if (error) throw error;
+    if (error) throw error;
 
-        clearForm();
-        await loadExpenses();
-      } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        alert('Fehler beim Speichern: ' + error.message);
-      } finally {
-        isLoading = false;
-        document.getElementById('submitBtn').disabled = false;
-      }
-    }
+    clearForm();
+    await loadExpenses(); // wartet auf Abschluss
+    renderTable(); // explizit aufrufen
+    updateSummary(); // explizit aufrufen
+  } catch (error) {
+    console.error('Fehler beim Speichern:', error);
+    alert('Fehler beim Speichern: ' + error.message);
+  } finally {
+    isLoading = false;
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
 
     function openEditModal(id) {
       const expense = expenses.find(e => e.id === id);
