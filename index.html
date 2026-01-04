@@ -129,13 +129,13 @@
     .year-tabs {
       display: flex;
       border-bottom: 2px solid rgba(94, 82, 64, 0.2);
-      padding: var(--space-16);
-      gap: var(--space-16);
+      padding: var(0);
+      gap: var(0);
       overflow-x: auto;
     }
 
     .year-tab {
-      padding: var(--space-8) var(--space-16);
+      padding: var(--space-16);
       background: none;
       border: none;
       cursor: pointer;
@@ -144,39 +144,56 @@
       border-bottom: 3px solid transparent;
       transition: all 150ms ease;
       white-space: nowrap;
+      text-align: center;
+      font-size: 14px;
+      border-right: 1px solid rgba(94, 82, 64, 0.1);
+    }
+
+    .year-tab:last-child {
+  border-right: none;
     }
 
     .year-tab:hover {
       color: var(--color-text);
+      background-color: rgba(94, 82, 64, 0.04);
     }
 
     .year-tab.active {
       color: var(--color-primary);
       border-bottom-color: var(--color-primary);
+      background-color: rgba(94, 82, 64, 0.02);
     }
 
     .month-tabs {
       display: flex;
-      padding: var(--space-16);
-      gap: var(--space-12);
+      padding: 0;
+      gap: 0;
       overflow-x: auto;
       border-bottom: 1px solid rgba(94, 82, 64, 0.1);
+      flex-direction: row-reverse;
     }
 
     .month-tab {
-      padding: var(--space-6) var(--space-12);
-      background: rgba(94, 82, 64, 0.08);
-      border: 1px solid rgba(94, 82, 64, 0.2);
+      flex: 1;
+      padding: var(--space-16);
+      background: none;
+      border: none;
       border-radius: var(--radius-base);
       cursor: pointer;
-      font-size: 12px;
+      font-size: 14px;
       color: var(--color-text);
       transition: all 150ms ease;
       white-space: nowrap;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .month-tab:first-child {
+      border-right: none;
     }
 
     .month-tab:hover {
-      background: rgba(94, 82, 64, 0.12);
+      background: rgba(94, 82, 64, 0.04);
     }
 
     .month-tab.active {
@@ -480,18 +497,18 @@
 
       <!-- Month Tabs (nur bei Jahr-Tab sichtbar) -->
       <div class="month-tabs" id="monthTabs">
-        <button class="month-tab active" data-month="01">Jan</button>
-        <button class="month-tab" data-month="02">Feb</button>
-        <button class="month-tab" data-month="03">Mär</button>
-        <button class="month-tab" data-month="04">Apr</button>
-        <button class="month-tab" data-month="05">Mai</button>
-        <button class="month-tab" data-month="06">Jun</button>
-        <button class="month-tab" data-month="07">Jul</button>
-        <button class="month-tab" data-month="08">Aug</button>
-        <button class="month-tab" data-month="09">Sep</button>
-        <button class="month-tab" data-month="10">Okt</button>
-        <button class="month-tab" data-month="11">Nov</button>
-        <button class="month-tab" data-month="12">Dez</button>
+      <button class="month-tab" data-month="12">Dezember</button>
+      <button class="month-tab" data-month="11">November</button>
+      <button class="month-tab" data-month="10">Oktober</button>
+      <button class="month-tab" data-month="09">September</button>
+      <button class="month-tab" data-month="08">August</button>
+      <button class="month-tab" data-month="07">Juli</button>
+      <button class="month-tab" data-month="06">Juni</button>
+      <button class="month-tab" data-month="05">Mai</button>
+      <button class="month-tab" data-month="04">April</button>
+      <button class="month-tab" data-month="03">März</button>
+      <button class="month-tab" data-month="02">Februar</button>
+      <button class="month-tab active" data-month="01">Januar</button>
       </div>
     </div>
 
@@ -591,27 +608,27 @@
     });
 
     function switchYear(e) {
-      const year = e.target.dataset.year;
-      selectedYear = year;
-      selectedMonth = '01'; // Reset zu Januar
+  const year = e.target.dataset.year;
+  selectedYear = year;
+  selectedMonth = '01'; // Reset zu Januar
 
-      // Update active buttons
-      document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
-      e.target.classList.add('active');
+  // Update active buttons
+  document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
+  e.target.classList.add('active');
 
-      // Update month tabs visibility
-      const monthTabs = document.getElementById('monthTabs');
-      if (year === 'all') {
-        monthTabs.style.display = 'none';
-      } else {
-        monthTabs.style.display = 'flex';
-        document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.month-tab[data-month="01"]').classList.add('active');
-      }
+  // Update month tabs visibility and order
+  const monthTabs = document.getElementById('monthTabs');
+  if (year === 'all') {
+    monthTabs.style.display = 'none';
+  } else {
+    monthTabs.style.display = 'flex';
+    document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.month-tab[data-month="01"]').classList.add('active');
+  }
 
-      renderTable();
-      updateSummary();
-    }
+  renderTable();
+  updateSummary();
+}
 
     function switchMonth(e) {
       selectedMonth = e.target.dataset.month;
