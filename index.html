@@ -541,16 +541,15 @@
 
     <!-- Tab Structure -->
     <div class="tabs-wrapper">
-      <!-- Year Tabs -->
+      <!-- Year Tabs (Ebene 1) -->
       <div class="year-tabs" id="yearTabs">
         <button class="year-tab active" data-year="2026">2026</button>
         <button class="year-tab" data-year="2025">2025</button>
         <button class="year-tab" data-year="2024">2024</button>
-        <button class="year-tab" data-year="overview">Übersicht</button>
         <button class="year-tab" data-year="all">Gesamt</button>
       </div>
 
-      <!-- Month Tabs (nur bei Jahr-Tab sichtbar, nicht bei Übersicht/Gesamt) -->
+      <!-- Month Tabs (Ebene 2) -->
       <div class="month-tabs" id="monthTabs">
         <button class="month-tab" data-month="12">Dezember</button>
         <button class="month-tab" data-month="11">November</button>
@@ -564,10 +563,11 @@
         <button class="month-tab" data-month="03">März</button>
         <button class="month-tab" data-month="02">Februar</button>
         <button class="month-tab active" data-month="01">Januar</button>
+        <button class="month-tab" data-month="overview">Übersicht</button>
       </div>
     </div>
 
-    <!-- Content Tabs (Ausgaben / Statistiken) -->
+    <!-- Content Tabs (Ebene 3) -->
     <div class="content-tabs" id="contentTabs">
       <button class="content-tab active" data-content="expenses">Ausgaben</button>
       <button class="content-tab" data-content="statistics">Statistiken</button>
@@ -694,7 +694,7 @@
 
       // Update month tabs visibility
       const monthTabs = document.getElementById('monthTabs');
-      if (year === 'all' || year === 'overview') {
+      if (year === 'all') {
         monthTabs.style.display = 'none';
       } else {
         monthTabs.style.display = 'flex';
@@ -759,12 +759,12 @@
       let filtered = expenses;
 
       // Nach Jahr filtern
-      if (selectedYear !== 'all' && selectedYear !== 'overview') {
+      if (selectedYear !== 'all') {
         filtered = filtered.filter(e => e.date.startsWith(selectedYear));
       }
 
-      // Nach Monat filtern (nur wenn nicht "all" oder "overview")
-      if (selectedYear !== 'all' && selectedYear !== 'overview' && selectedMonth) {
+      // Nach Monat filtern (nur wenn nicht "all" und nicht "overview")
+      if (selectedYear !== 'all' && selectedMonth !== 'overview') {
         filtered = filtered.filter(e => e.date.startsWith(`${selectedYear}-${selectedMonth}`));
       }
 
