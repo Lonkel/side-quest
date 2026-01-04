@@ -118,6 +118,73 @@
       background-color: rgba(94, 82, 64, 0.2);
     }
 
+    /* Tab Styles */
+    .tabs-wrapper {
+      background-color: var(--color-surface);
+      border-radius: var(--radius-base);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      margin-bottom: var(--space-24);
+    }
+
+    .year-tabs {
+      display: flex;
+      border-bottom: 2px solid rgba(94, 82, 64, 0.2);
+      padding: var(--space-16);
+      gap: var(--space-16);
+      overflow-x: auto;
+    }
+
+    .year-tab {
+      padding: var(--space-8) var(--space-16);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      border-bottom: 3px solid transparent;
+      transition: all 150ms ease;
+      white-space: nowrap;
+    }
+
+    .year-tab:hover {
+      color: var(--color-text);
+    }
+
+    .year-tab.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    .month-tabs {
+      display: flex;
+      padding: var(--space-16);
+      gap: var(--space-12);
+      overflow-x: auto;
+      border-bottom: 1px solid rgba(94, 82, 64, 0.1);
+    }
+
+    .month-tab {
+      padding: var(--space-6) var(--space-12);
+      background: rgba(94, 82, 64, 0.08);
+      border: 1px solid rgba(94, 82, 64, 0.2);
+      border-radius: var(--radius-base);
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--color-text);
+      transition: all 150ms ease;
+      white-space: nowrap;
+    }
+
+    .month-tab:hover {
+      background: rgba(94, 82, 64, 0.12);
+    }
+
+    .month-tab.active {
+      background: var(--color-primary);
+      color: #fcfcf9;
+      border-color: var(--color-primary);
+    }
+
     .table-section {
       background-color: var(--color-surface);
       padding: var(--space-24);
@@ -338,6 +405,16 @@
       .icon-btn {
         font-size: 16px;
       }
+
+      .year-tabs {
+        padding: var(--space-12);
+        gap: var(--space-12);
+      }
+
+      .year-tab {
+        padding: var(--space-6) var(--space-12);
+        font-size: 12px;
+      }
     }
   </style>
 </head>
@@ -388,6 +465,33 @@
       <div class="button-group">
         <button class="btn-primary" id="submitBtn">Hinzufügen</button>
         <button class="btn-secondary" id="resetBtn">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <!-- Tab Structure -->
+    <div class="tabs-wrapper">
+      <!-- Year Tabs -->
+      <div class="year-tabs" id="yearTabs">
+        <button class="year-tab active" data-year="2026">2026</button>
+        <button class="year-tab" data-year="2025">2025</button>
+        <button class="year-tab" data-year="2024">2024</button>
+        <button class="year-tab" data-year="all">Gesamt</button>
+      </div>
+
+      <!-- Month Tabs (nur bei Jahr-Tab sichtbar) -->
+      <div class="month-tabs" id="monthTabs">
+        <button class="month-tab active" data-month="01">Jan</button>
+        <button class="month-tab" data-month="02">Feb</button>
+        <button class="month-tab" data-month="03">Mär</button>
+        <button class="month-tab" data-month="04">Apr</button>
+        <button class="month-tab" data-month="05">Mai</button>
+        <button class="month-tab" data-month="06">Jun</button>
+        <button class="month-tab" data-month="07">Jul</button>
+        <button class="month-tab" data-month="08">Aug</button>
+        <button class="month-tab" data-month="09">Sep</button>
+        <button class="month-tab" data-month="10">Okt</button>
+        <button class="month-tab" data-month="11">Nov</button>
+        <button class="month-tab" data-month="12">Dez</button>
       </div>
     </div>
 
@@ -462,6 +566,8 @@
     let isLoading = false;
     let editingId = null;
     let draggedRow = null;
+    let selectedYear = '2026';
+    let selectedMonth = '01';
 
     // DOM ready
     window.addEventListener('DOMContentLoaded', () => {
@@ -470,8 +576,53 @@
       document.getElementById('resetBtn').addEventListener('click', clearForm);
       document.getElementById('saveBtn').addEventListener('click', saveEdit);
       document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+      // Year Tab Listeners
+      document.querySelectorAll('.year-tab').forEach(btn => {
+        btn.addEventListener('click', switchYear);
+      });
+
+      // Month Tab Listeners
+      document.querySelectorAll('.month-tab').forEach(btn => {
+        btn.addEventListener('click', switchMonth);
+      });
+
       loadExpenses();
     });
+
+    function switchYear(e) {
+      const year = e.target.dataset.year;
+      selectedYear = year;
+      selectedMonth = '01'; // Reset zu Januar
+
+      // Update active buttons
+      document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+
+      // Update month tabs visibility
+      const monthTabs = document.getElementById('monthTabs');
+      if (year === 'all') {
+        monthTabs.style.display = 'none';
+      } else {
+        monthTabs.style.display = 'flex';
+        document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.month-tab[data-month="01"]').classList.add('active');
+      }
+
+      renderTable();
+      updateSummary();
+    }
+
+    function switchMonth(e) {
+      selectedMonth = e.target.dataset.month;
+
+      // Update active buttons
+      document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+
+      renderTable();
+      updateSummary();
+    }
 
     async function loadExpenses() {
       isLoading = true;
@@ -492,6 +643,22 @@
         console.error('Fehler beim Laden:', error);
         isLoading = false;
       }
+    }
+
+    function getFilteredExpenses() {
+      let filtered = expenses;
+
+      // Nach Jahr filtern
+      if (selectedYear !== 'all') {
+        filtered = filtered.filter(e => e.date.startsWith(selectedYear));
+      }
+
+      // Nach Monat filtern (nur wenn nicht "all")
+      if (selectedYear !== 'all' && selectedMonth) {
+        filtered = filtered.filter(e => e.date.startsWith(`${selectedYear}-${selectedMonth}`));
+      }
+
+      return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
     async function addExpense(event) {
@@ -638,15 +805,14 @@
 
     function renderTable() {
       const tbody = document.getElementById('expenseTable');
+      const filtered = getFilteredExpenses();
 
-      if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td></tr>';
+      if (!filtered || filtered.length === 0) {
+        tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Keine Ausgaben für diesen Zeitraum vorhanden.</td></tr>';
         return;
       }
 
-      const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      tbody.innerHTML = sorted.map(expense => `
+      tbody.innerHTML = filtered.map(expense => `
         <tr draggable="true" data-id="${expense.id}">
           <td style="text-align: center; cursor: grab;">
             <span class="icon-drag">⋮⋮</span>
