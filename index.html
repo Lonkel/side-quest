@@ -129,12 +129,13 @@
     .year-tabs {
       display: flex;
       border-bottom: 2px solid rgba(94, 82, 64, 0.2);
-      padding: var(0);
-      gap: var(0);
+      padding: 0;
+      gap: 0;
       overflow-x: auto;
     }
 
     .year-tab {
+      flex: 1;
       padding: var(--space-16);
       background: none;
       border: none;
@@ -150,7 +151,7 @@
     }
 
     .year-tab:last-child {
-  border-right: none;
+      border-right: none;
     }
 
     .year-tab:hover {
@@ -178,7 +179,7 @@
       padding: var(--space-16);
       background: none;
       border: none;
-      border-radius: var(--radius-base);
+      border-right: 1px solid rgba(94, 82, 64, 0.1);
       cursor: pointer;
       font-size: 14px;
       color: var(--color-text);
@@ -193,7 +194,7 @@
     }
 
     .month-tab:hover {
-      background: rgba(94, 82, 64, 0.04);
+      background-color: rgba(94, 82, 64, 0.04);
     }
 
     .month-tab.active {
@@ -202,12 +203,65 @@
       border-color: var(--color-primary);
     }
 
+    /* Content Tabs */
+    .content-tabs {
+      display: flex;
+      gap: var(--space-16);
+      padding: var(--space-16);
+      border-bottom: 1px solid rgba(94, 82, 64, 0.1);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-base);
+      margin-bottom: var(--space-24);
+    }
+
+    .content-tab {
+      padding: var(--space-8) var(--space-16);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      border-bottom: 3px solid transparent;
+      transition: all 150ms ease;
+      white-space: nowrap;
+    }
+
+    .content-tab:hover {
+      color: var(--color-text);
+    }
+
+    .content-tab.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    /* Content Sections */
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
     .table-section {
       background-color: var(--color-surface);
       padding: var(--space-24);
       border-radius: var(--radius-base);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       overflow-x: auto;
+    }
+
+    .stats-section {
+      background-color: var(--color-surface);
+      padding: var(--space-24);
+      border-radius: var(--radius-base);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
     }
 
     table {
@@ -423,12 +477,12 @@
         font-size: 16px;
       }
 
-      .year-tabs {
+      .content-tabs {
+        gap: var(--space-8);
         padding: var(--space-12);
-        gap: var(--space-12);
       }
 
-      .year-tab {
+      .content-tab {
         padding: var(--space-6) var(--space-12);
         font-size: 12px;
       }
@@ -492,44 +546,60 @@
         <button class="year-tab active" data-year="2026">2026</button>
         <button class="year-tab" data-year="2025">2025</button>
         <button class="year-tab" data-year="2024">2024</button>
+        <button class="year-tab" data-year="overview">Übersicht</button>
         <button class="year-tab" data-year="all">Gesamt</button>
       </div>
 
-      <!-- Month Tabs (nur bei Jahr-Tab sichtbar) -->
+      <!-- Month Tabs (nur bei Jahr-Tab sichtbar, nicht bei Übersicht/Gesamt) -->
       <div class="month-tabs" id="monthTabs">
-      <button class="month-tab" data-month="12">Dezember</button>
-      <button class="month-tab" data-month="11">November</button>
-      <button class="month-tab" data-month="10">Oktober</button>
-      <button class="month-tab" data-month="09">September</button>
-      <button class="month-tab" data-month="08">August</button>
-      <button class="month-tab" data-month="07">Juli</button>
-      <button class="month-tab" data-month="06">Juni</button>
-      <button class="month-tab" data-month="05">Mai</button>
-      <button class="month-tab" data-month="04">April</button>
-      <button class="month-tab" data-month="03">März</button>
-      <button class="month-tab" data-month="02">Februar</button>
-      <button class="month-tab active" data-month="01">Januar</button>
+        <button class="month-tab" data-month="12">Dezember</button>
+        <button class="month-tab" data-month="11">November</button>
+        <button class="month-tab" data-month="10">Oktober</button>
+        <button class="month-tab" data-month="09">September</button>
+        <button class="month-tab" data-month="08">August</button>
+        <button class="month-tab" data-month="07">Juli</button>
+        <button class="month-tab" data-month="06">Juni</button>
+        <button class="month-tab" data-month="05">Mai</button>
+        <button class="month-tab" data-month="04">April</button>
+        <button class="month-tab" data-month="03">März</button>
+        <button class="month-tab" data-month="02">Februar</button>
+        <button class="month-tab active" data-month="01">Januar</button>
       </div>
     </div>
 
-    <div class="table-section">
-      <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Ausgaben</h2>
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Datum</th>
-            <th>Kategorie</th>
-            <th class="text-right">Betrag</th>
-            <th class="text-right">Aktion</th>
-          </tr>
-        </thead>
-        <tbody id="expenseTable" draggable="false">
-          <tr class="empty-state">
-            <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Content Tabs (Ausgaben / Statistiken) -->
+    <div class="content-tabs" id="contentTabs">
+      <button class="content-tab active" data-content="expenses">Ausgaben</button>
+      <button class="content-tab" data-content="statistics">Statistiken</button>
+    </div>
+
+    <!-- Ausgaben Section -->
+    <div class="content-section active" id="expensesSection">
+      <div class="table-section">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Datum</th>
+              <th>Kategorie</th>
+              <th class="text-right">Betrag</th>
+              <th class="text-right">Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTable" draggable="false">
+            <tr class="empty-state">
+              <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Statistiken Section -->
+    <div class="content-section" id="statisticsSection">
+      <div class="stats-section">
+        <p>Grafiken und Statistiken werden hier angezeigt</p>
+      </div>
     </div>
   </div>
 
@@ -585,6 +655,7 @@
     let draggedRow = null;
     let selectedYear = '2026';
     let selectedMonth = '01';
+    let selectedContent = 'expenses';
 
     // DOM ready
     window.addEventListener('DOMContentLoaded', () => {
@@ -604,31 +675,36 @@
         btn.addEventListener('click', switchMonth);
       });
 
+      // Content Tab Listeners
+      document.querySelectorAll('.content-tab').forEach(btn => {
+        btn.addEventListener('click', switchContent);
+      });
+
       loadExpenses();
     });
 
     function switchYear(e) {
-  const year = e.target.dataset.year;
-  selectedYear = year;
-  selectedMonth = '01'; // Reset zu Januar
+      const year = e.target.dataset.year;
+      selectedYear = year;
+      selectedMonth = '01';
 
-  // Update active buttons
-  document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
-  e.target.classList.add('active');
+      // Update active buttons
+      document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
 
-  // Update month tabs visibility and order
-  const monthTabs = document.getElementById('monthTabs');
-  if (year === 'all') {
-    monthTabs.style.display = 'none';
-  } else {
-    monthTabs.style.display = 'flex';
-    document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.month-tab[data-month="01"]').classList.add('active');
-  }
+      // Update month tabs visibility
+      const monthTabs = document.getElementById('monthTabs');
+      if (year === 'all' || year === 'overview') {
+        monthTabs.style.display = 'none';
+      } else {
+        monthTabs.style.display = 'flex';
+        document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.month-tab[data-month="01"]').classList.add('active');
+      }
 
-  renderTable();
-  updateSummary();
-}
+      renderTable();
+      updateSummary();
+    }
 
     function switchMonth(e) {
       selectedMonth = e.target.dataset.month;
@@ -639,6 +715,23 @@
 
       renderTable();
       updateSummary();
+    }
+
+    function switchContent(e) {
+      selectedContent = e.target.dataset.content;
+
+      // Update active buttons
+      document.querySelectorAll('.content-tab').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+
+      // Update content sections
+      document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+      
+      if (selectedContent === 'expenses') {
+        document.getElementById('expensesSection').classList.add('active');
+      } else if (selectedContent === 'statistics') {
+        document.getElementById('statisticsSection').classList.add('active');
+      }
     }
 
     async function loadExpenses() {
@@ -666,12 +759,12 @@
       let filtered = expenses;
 
       // Nach Jahr filtern
-      if (selectedYear !== 'all') {
+      if (selectedYear !== 'all' && selectedYear !== 'overview') {
         filtered = filtered.filter(e => e.date.startsWith(selectedYear));
       }
 
-      // Nach Monat filtern (nur wenn nicht "all")
-      if (selectedYear !== 'all' && selectedMonth) {
+      // Nach Monat filtern (nur wenn nicht "all" oder "overview")
+      if (selectedYear !== 'all' && selectedYear !== 'overview' && selectedMonth) {
         filtered = filtered.filter(e => e.date.startsWith(`${selectedYear}-${selectedMonth}`));
       }
 
