@@ -179,7 +179,7 @@
       color: #c01527;
     }
 
-    .badge-transport {
+    .badge-vacation {
       background-color: rgba(50, 184, 198, 0.15);
       color: #2db89a;
     }
@@ -187,6 +187,16 @@
     .badge-entertainment {
       background-color: rgba(230, 129, 97, 0.15);
       color: #a84b2f;
+    }
+
+    .badge-fixed {
+      background-color: rgba(33, 128, 141, 0.15);
+      color: #208099;
+    }
+
+    .badge-finance {
+      background-color: rgba(45, 166, 178, 0.15);
+      color: #1a8a9a;
     }
 
     .badge-utilities {
@@ -361,9 +371,11 @@
           <label for="category">Kategorie</label>
           <select id="category">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍔 Essen & Getränke</option>
-            <option value="transport">🚗 Mobilität</option>
+            <option value="food">🍔 Essen</option>
+            <option value="vacation">✈️ Reisen</option>
             <option value="entertainment">🎬 Unterhaltung</option>
+            <option value="fixed">🏠 Fixkosten</option>
+            <option value="finance">💳 ETFs</option>
             <option value="utilities">💡 Nebenkosten</option>
             <option value="other">📌 Sonstiges</option>
           </select>
@@ -413,9 +425,11 @@
           <label for="editCategory">Kategorie</label>
           <select id="editCategory">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍔 Essen & Getränke</option>
-            <option value="transport">🚗 Mobilität</option>
+            <option value="food">🍔 Essen</option>
+            <option value="vacation">✈️ Reisen</option>
             <option value="entertainment">🎬 Unterhaltung</option>
+            <option value="fixed">🏠 Fixkosten</option>
+            <option value="finance">💳 ETFs</option>
             <option value="utilities">💡 Nebenkosten</option>
             <option value="other">📌 Sonstiges</option>
           </select>
@@ -460,7 +474,6 @@
     });
 
     async function loadExpenses() {
-      if (isLoading) return;
       isLoading = true;
 
       try {
@@ -474,53 +487,49 @@
         expenses = data || [];
         renderTable();
         updateSummary();
+        isLoading = false;
       } catch (error) {
         console.error('Fehler beim Laden:', error);
-        alert('Fehler beim Laden der Ausgaben: ' + error.message);
-      } finally {
         isLoading = false;
       }
     }
 
-async function addExpense(event) {
-  event.preventDefault();
+    async function addExpense(event) {
+      event.preventDefault();
 
-  const date = document.getElementById('date').value;
-  const category = document.getElementById('category').value;
-  const amount = parseFloat(document.getElementById('amount').value);
+      const date = document.getElementById('date').value;
+      const category = document.getElementById('category').value;
+      const amount = parseFloat(document.getElementById('amount').value);
 
-  if (!date || !category || isNaN(amount) || amount <= 0) {
-    alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
-    return;
-  }
+      if (!date || !category || isNaN(amount) || amount <= 0) {
+        alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+        return;
+      }
 
-  if (isLoading) return;
-  isLoading = true;
-  document.getElementById('submitBtn').disabled = true;
+      if (isLoading) return;
+      isLoading = true;
+      document.getElementById('submitBtn').disabled = true;
 
-  try {
-    const { error } = await db
-      .from('expenses')
-      .insert({
-        date,
-        category,
-        amount
-      });
+      try {
+        const { error } = await db
+          .from('expenses')
+          .insert({
+            date,
+            category,
+            amount
+          });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    clearForm();
-    await loadExpenses(); // wartet auf Abschluss
-    renderTable(); // explizit aufrufen
-    updateSummary(); // explizit aufrufen
-  } catch (error) {
-    console.error('Fehler beim Speichern:', error);
-    alert('Fehler beim Speichern: ' + error.message);
-  } finally {
-    isLoading = false;
-    document.getElementById('submitBtn').disabled = false;
-  }
-}
+        clearForm();
+        await loadExpenses();
+      } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        alert('Fehler beim Speichern: ' + error.message);
+        isLoading = false;
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
 
     function openEditModal(id) {
       const expense = expenses.find(e => e.id === id);
@@ -570,7 +579,6 @@ async function addExpense(event) {
       } catch (error) {
         console.error('Fehler beim Aktualisieren:', error);
         alert('Fehler beim Aktualisieren: ' + error.message);
-      } finally {
         isLoading = false;
       }
     }
@@ -593,7 +601,6 @@ async function addExpense(event) {
       } catch (error) {
         console.error('Fehler beim Löschen:', error);
         alert('Fehler beim Löschen: ' + error.message);
-      } finally {
         isLoading = false;
       }
     }
@@ -611,9 +618,11 @@ async function addExpense(event) {
 
     function getCategoryLabel(category) {
       const labels = {
-        food: '🍔 Essen & Getränke',
-        transport: '🚗 Mobilität',
+        food: '🍔 Essen',
+        vacation: '✈️ Reisen',
         entertainment: '🎬 Unterhaltung',
+        fixed: '🏠 Fixkosten',
+        finance: '💳 ETFs',
         utilities: '💡 Nebenkosten',
         other: '📌 Sonstiges'
       };
