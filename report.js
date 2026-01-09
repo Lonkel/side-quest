@@ -14,6 +14,8 @@ let draggedRow = null;
 let selectedYear = '2026';
 let selectedMonth = '01';
 let selectedContent = 'expenses';
+let reportTitle = 'Ausgaben Tracker';
+let categoryMap = {};
 
 // DOM ready
 window.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +24,11 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('resetBtn').addEventListener('click', clearForm);
   document.getElementById('saveBtn').addEventListener('click', saveEdit);
   document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+  // Edit Title
+  document.getElementById('editTitleBtn').addEventListener('click', openEditTitleModal);
+  document.getElementById('saveTitleBtn').addEventListener('click', saveTitle);
+  document.getElementById('cancelTitleBtn').addEventListener('click', closeEditTitleModal);
 
   // Year Tab Listeners
   document.querySelectorAll('.year-tab').forEach(btn => {
@@ -43,10 +50,13 @@ window.addEventListener('DOMContentLoaded', () => {
     window.location.href = `/categories.html?report_id=${reportId}`;
   });
 
+  loadReport();
+  loadCategories();
   loadExpenses();
 });
 
-// Lade Report-Name
+// ===== REPORT TITLE FUNCTIONS =====
+
 async function loadReport() {
   try {
     const { data, error } = await db
@@ -66,19 +76,16 @@ async function loadReport() {
   }
 }
 
-// Modal für Titel öffnen
 function openEditTitleModal() {
   document.getElementById('editTitleInput').value = reportTitle;
   document.getElementById('editTitleModal').classList.add('active');
   document.getElementById('editTitleInput').focus();
 }
 
-// Modal für Titel schließen
 function closeEditTitleModal() {
   document.getElementById('editTitleModal').classList.remove('active');
 }
 
-// Titel speichern
 async function saveTitle() {
   const newTitle = document.getElementById('editTitleInput').value.trim();
 
@@ -103,6 +110,77 @@ async function saveTitle() {
     alert('Fehler beim Speichern: ' + error.message);
   }
 }
+
+// ===== CATEGORY FUNCTIONS =====
+
+async function loadCategories() {
+  try {
+    const { data, error } = await db
+      .from('categories')
+      .select('*')
+      .eq('report_id', reportId);
+
+    if (error) throw error;
+
+    // Erstelle Map für schnellen Zugriff
+    categoryMap = {};
+    (data || []).forEach(cat => {
+      categoryMap[cat.key] = cat;
+    });
+
+    // Aktualisiere Select-Optionen
+    updateCategorySelects();
+  } catch (error) {
+    console.error('Fehler beim Laden der Kategorien:', error);
+  }
+}
+
+function updateCategorySelects() {
+  const selects = ['category', 'editCategory'];
+  
+  selects.forEach(selectId => {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    // Behalte "-- Kategorie wählen --"
+    const defaultOption = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    
+    if (defaultOption) {
+      select.appendChild(defaultOption);
+    }
+
+    // Füge alle Kategorien hinzu
+    Object.values(categoryMap).forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat.key;
+      option.textContent = `${cat.icon} ${cat.name}`;
+      select.appendChild(option);
+    });
+  });
+}
+
+function getCategoryLabel(category) {
+  const cat = categoryMap[category];
+  if (cat) {
+    return `${cat.icon} ${cat.name}`;
+  }
+  return category;
+}
+
+function getCategoryColor(category) {
+  const cat = categoryMap[category];
+  return cat?.color || '#a7a9a9';
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ===== TAB SWITCHING FUNCTIONS =====
 
 function switchYear(e) {
   const year = e.target.dataset.year;
@@ -150,6 +228,8 @@ function switchContent(e) {
   }
 }
 
+// ===== EXPENSE LOADING =====
+
 async function loadExpenses() {
   isLoading = true;
 
@@ -185,6 +265,8 @@ function getFilteredExpenses() {
 
   return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
+
+// ===== EXPENSE CRUD OPERATIONS =====
 
 async function addExpense(event) {
   event.preventDefault();
@@ -305,30 +387,7 @@ function clearForm(event) {
   document.getElementById('amount').value = '';
 }
 
-function getCategoryBadgeClass(category) {
-  return `badge-${category}`;
-}
-
-function getCategoryLabel(category) {
-  const labels = {
-    food: '🍽️ Essen',
-    entertainment: '🎉 Vergnügen',
-    shopping: '🛍️ Shopping',
-    fixed: '🏠 Fixkosten',
-    cash: '💵 Bargeld',
-    travel: '✈️ Reisen',
-    etf: '📈 ETF',
-    other: '📌 Sonstiges'
-  };
-  return labels[category] || category;
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(value);
-}
+// ===== TABLE RENDERING & DRAG & DROP =====
 
 function renderTable() {
   const tbody = document.getElementById('expenseTable');
@@ -346,7 +405,7 @@ function renderTable() {
       </td>
       <td>${new Date(expense.date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
       <td>
-        <span class="status-badge ${getCategoryBadgeClass(expense.category)}">
+        <span class="status-badge" style="background-color: ${hexToRgba(getCategoryColor(expense.category), 0.15)}; color: ${getCategoryColor(expense.category)}; display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
           ${getCategoryLabel(expense.category)}
         </span>
       </td>
@@ -401,6 +460,15 @@ function handleDragEnd(e) {
   draggedRow = null;
 }
 
+// ===== SUMMARY FUNCTIONS =====
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(value);
+}
+
 function updateSummary() {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -421,6 +489,7 @@ function updateSummary() {
   document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
 }
 
-// Global Functions
+// ===== GLOBAL FUNCTIONS =====
+
 window.deleteExpense = deleteExpense;
 window.openEditModal = openEditModal;
