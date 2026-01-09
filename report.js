@@ -46,6 +46,64 @@ window.addEventListener('DOMContentLoaded', () => {
   loadExpenses();
 });
 
+// Lade Report-Name
+async function loadReport() {
+  try {
+    const { data, error } = await db
+      .from('reports')
+      .select('name')
+      .eq('id', reportId)
+      .single();
+
+    if (error) throw error;
+
+    if (data && data.name) {
+      reportTitle = data.name;
+      document.getElementById('reportTitle').textContent = reportTitle;
+    }
+  } catch (error) {
+    console.error('Fehler beim Laden des Reports:', error);
+  }
+}
+
+// Modal für Titel öffnen
+function openEditTitleModal() {
+  document.getElementById('editTitleInput').value = reportTitle;
+  document.getElementById('editTitleModal').classList.add('active');
+  document.getElementById('editTitleInput').focus();
+}
+
+// Modal für Titel schließen
+function closeEditTitleModal() {
+  document.getElementById('editTitleModal').classList.remove('active');
+}
+
+// Titel speichern
+async function saveTitle() {
+  const newTitle = document.getElementById('editTitleInput').value.trim();
+
+  if (!newTitle) {
+    alert('Bitte gib einen Titel ein.');
+    return;
+  }
+
+  try {
+    const { error } = await db
+      .from('reports')
+      .update({ name: newTitle })
+      .eq('id', reportId);
+
+    if (error) throw error;
+
+    reportTitle = newTitle;
+    document.getElementById('reportTitle').textContent = reportTitle;
+    closeEditTitleModal();
+  } catch (error) {
+    console.error('Fehler beim Speichern:', error);
+    alert('Fehler beim Speichern: ' + error.message);
+  }
+}
+
 function switchYear(e) {
   const year = e.target.dataset.year;
   selectedYear = year;
