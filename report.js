@@ -398,24 +398,31 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = filtered.map(expense => `
-    <tr draggable="true" data-id="${expense.id}">
-      <td style="text-align: center; cursor: grab;">
-        <span class="icon-drag">⋮⋮</span>
-      </td>
-      <td>${new Date(expense.date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-      <td>
-        <span class="status-badge" style="background-color: ${hexToRgba(getCategoryColor(expense.category), 0.15)}; color: ${getCategoryColor(expense.category)}; display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
-          ${getCategoryLabel(expense.category)}
-        </span>
-      </td>
-      <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
-      <td class="text-right action-buttons">
-        <button class="icon-btn icon-delete" onclick="deleteExpense(${expense.id})" title="Löschen">✕</button>
-        <button class="icon-btn icon-edit" onclick="openEditModal(${expense.id})" title="Bearbeiten">✎</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = filtered.map(expense => {
+    const cat = categoryMap[expense.category];
+    const label = cat ? `${cat.icon} ${cat.name}` : expense.category;
+    const color = cat ? cat.color : '#a7a9a9';
+    const bgColor = hexToRgba(color, 0.15);
+
+    return `
+      <tr draggable="true" data-id="${expense.id}">
+        <td style="text-align: center; cursor: grab;">
+          <span class="icon-drag">⋮⋮</span>
+        </td>
+        <td>${new Date(expense.date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+        <td>
+          <span class="status-badge" style="background-color: ${bgColor}; color: ${color};">
+            ${label}
+          </span>
+        </td>
+        <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
+        <td class="text-right action-buttons">
+          <button class="icon-btn icon-delete" onclick="deleteExpense(${expense.id})" title="Löschen">✕</button>
+          <button class="icon-btn icon-edit" onclick="openEditModal(${expense.id})" title="Bearbeiten">✎</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   const rows = tbody.querySelectorAll('tr');
   rows.forEach(row => {
