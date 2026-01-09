@@ -14,7 +14,7 @@ const defaultCategories = [
   { icon: '🍽️', key: 'food', name: 'Essen', color: '#ff5459' },
   { icon: '🎉', key: 'entertainment', name: 'Vergnügen', color: '#32b8c6' },
   { icon: '🛍️', key: 'shopping', name: 'Shopping', color: '#ff9c64' },
-  { icon: '🏠', key: 'fixed', name: 'Fixkosten', color: '#32b8c6' },
+  { icon: '🏠', key: 'fixed', name: 'Fixkosten', color: '#2196f3' },
   { icon: '💵', key: 'cash', name: 'Bargeld', color: '#4caf50' },
   { icon: '✈️', key: 'travel', name: 'Reisen', color: '#9c27b0' },
   { icon: '📈', key: 'etf', name: 'ETF', color: '#2196f3' },
@@ -27,6 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+  document.getElementById('newIcon').addEventListener('focus', openEmojiPicker);
 
   loadCategories();
 });
@@ -39,16 +40,17 @@ async function loadCategories() {
       .eq('report_id', reportId)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('DB Error:', error);
+      throw error;
+    }
 
-    // Kombiniere DB-Kategorien mit Default-Kategorien
     const dbCategories = data || [];
     const dbKeys = dbCategories.map(c => c.key);
     
-    // Füge Default-Kategorien hinzu, die noch nicht in der DB sind
+    // Füge Default-Kategorien hinzu, die noch nicht existieren
     const defaultToAdd = defaultCategories.filter(dc => !dbKeys.includes(dc.key));
     
-    // Wenn Default-Kategorien fehlen, füge sie zur DB hinzu
     if (defaultToAdd.length > 0) {
       const toInsert = defaultToAdd.map(cat => ({
         report_id: reportId,
@@ -58,15 +60,23 @@ async function loadCategories() {
         color: cat.color
       }));
 
-      await db.from('categories').insert(toInsert);
+      const { error: insertError } = await db
+        .from('categories')
+        .insert(toInsert);
+
+      if (insertError) {
+        console.error('Insert Error:', insertError);
+        throw insertError;
+      }
       
       // Neu laden
-      const { data: newData } = await db
+      const { data: newData, error: reloadError } = await db
         .from('categories')
         .select('*')
         .eq('report_id', reportId)
         .order('created_at', { ascending: true });
       
+      if (reloadError) throw reloadError;
       categories = newData || [];
     } else {
       categories = dbCategories;
@@ -74,7 +84,7 @@ async function loadCategories() {
 
     renderCategories();
   } catch (error) {
-    console.error('Fehler beim Laden:', error);
+    console.error('Fehler beim Laden der Kategorien:', error);
     alert('Fehler beim Laden der Kategorien: ' + error.message);
   }
 }
@@ -94,7 +104,7 @@ function renderCategories() {
           type="text" 
           value="${cat.icon || '📌'}" 
           onchange="updateCategory('${cat.id}', 'icon', this.value)"
-          style="width: 40px; padding: 6px 4px; text-align: center; font-size: 18px;"
+          style="width: 40px; padding: 6px 4px; text-align: center; font-size: 18px; border: 1px solid rgba(94, 82, 64, 0.2); border-radius: 6px; background-color: var(--color-surface); color: var(--color-text);"
           maxlength="2"
         />
       </td>
@@ -103,7 +113,7 @@ function renderCategories() {
           type="text" 
           value="${cat.key}" 
           onchange="updateCategory('${cat.id}', 'key', this.value)"
-          style="width: 100%; padding: 6px 8px;"
+          style="width: 100%; padding: 6px 8px; border: 1px solid rgba(94, 82, 64, 0.2); border-radius: 6px; background-color: var(--color-surface); color: var(--color-text);"
         />
       </td>
       <td>
@@ -111,7 +121,7 @@ function renderCategories() {
           type="text" 
           value="${cat.name}" 
           onchange="updateCategory('${cat.id}', 'name', this.value)"
-          style="width: 100%; padding: 6px 8px;"
+          style="width: 100%; padding: 6px 8px; border: 1px solid rgba(94, 82, 64, 0.2); border-radius: 6px; background-color: var(--color-surface); color: var(--color-text);"
         />
       </td>
       <td>
@@ -157,7 +167,10 @@ async function addCategory() {
         color
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Insert Error:', error);
+      throw error;
+    }
 
     document.getElementById('newIcon').value = '';
     document.getElementById('newKey').value = '';
@@ -204,3 +217,88 @@ window.deleteCategory = async (id) => {
     alert('Fehler beim Löschen: ' + error.message);
   }
 };
+
+// ===== EMOJI PICKER =====
+
+function openEmojiPicker() {
+  const input = document.getElementById('newIcon');
+  
+  // Auf Mobile: Nutze natives Emoji-Keyboard
+  if (/iPhone|iPad|Android/i.test(navigator.userAgent)) {
+    input.setAttribute('inputmode', 'none');
+    input.focus();
+    // Native Emoji-Tastatur öffnet sich automatisch
+    return;
+  }
+
+  // Desktop: Zeige Emoji-Picker
+  showEmojiPicker('newIcon');
+}
+
+function showEmojiPicker(inputId) {
+  const emojis = [
+    '🍽️', '🍕', '🍔', '🍜', '☕', '🍷', '🍺', '🎂',
+    '🎉', '🎮', '🎬', '🎸', '🎤', '🎭', '🎨', '📺',
+    '🛍️', '👕', '👗', '👠', '💄', '👜', '⌚', '🎒',
+    '🏠', '🏡', '🏢', '🚗', '✈️', '🚆', '🚢', '⛽',
+    '💵', '💴', '💶', '💷', '💸', '💳', '📈', '📊',
+    '📚', '📖', '✏️', '💻', '📱', '🔧', '⚙️', '🔐',
+    '⚽', '🏀', '🎾', '⛳', '🏋️', '🤸', '🧘', '🏃',
+    '❤️', '🎁', '🌟', '✨', '⭐', '🌈', '☀️', '🌙',
+    '👨‍💼', '👩‍💼', '🧑‍💻', '👨‍🍳', '🧑‍🏫', '🧑‍⚕️', '📌', '🔖'
+  ];
+
+  let pickerHtml = `
+    <div id="emojiPickerModal" class="modal active" style="backdrop-filter: blur(0px);">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">Emoji auswählen</div>
+        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; padding: 16px 0; max-height: 300px; overflow-y: auto;">
+  `;
+
+  emojis.forEach(emoji => {
+    pickerHtml += `
+      <button 
+        type="button"
+        style="
+          padding: 12px;
+          background: rgba(94, 82, 64, 0.1);
+          border: 1px solid rgba(94, 82, 64, 0.2);
+          border-radius: 8px;
+          font-size: 24px;
+          cursor: pointer;
+          transition: all 150ms ease;
+        "
+        onmouseover="this.style.backgroundColor='rgba(50, 184, 198, 0.2)'; this.style.transform='scale(1.1)';"
+        onmouseout="this.style.backgroundColor='rgba(94, 82, 64, 0.1)'; this.style.transform='scale(1)';"
+        onclick="selectEmoji('${emoji}', '${inputId}'); closeEmojiPicker();"
+      >
+        ${emoji}
+      </button>
+    `;
+  });
+
+  pickerHtml += `
+        </div>
+        <div class="modal-buttons">
+          <button class="btn-secondary" onclick="closeEmojiPicker()" style="flex: 1;">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Entferne alten Picker, falls vorhanden
+  const oldPicker = document.getElementById('emojiPickerModal');
+  if (oldPicker) oldPicker.remove();
+
+  // Füge neuen Picker ein
+  document.body.insertAdjacentHTML('beforeend', pickerHtml);
+}
+
+function selectEmoji(emoji, inputId) {
+  document.getElementById(inputId).value = emoji;
+}
+
+function closeEmojiPicker() {
+  const picker = document.getElementById('emojiPickerModal');
+  if (picker) picker.remove();
+}
