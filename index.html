@@ -314,37 +314,42 @@
 
     .badge-food {
       background-color: rgba(255, 84, 89, 0.15);
-      color: #c01527;
-    }
-
-    .badge-vacation {
-      background-color: rgba(50, 184, 198, 0.15);
-      color: #2db89a;
+      color: #ff5459;
     }
 
     .badge-entertainment {
+      background-color: rgba(50, 184, 198, 0.15);
+      color: #32b8c6;
+    }
+
+    .badge-shopping {
       background-color: rgba(230, 129, 97, 0.15);
-      color: #a84b2f;
+      color: #ff9c64;
     }
 
     .badge-fixed {
       background-color: rgba(33, 128, 141, 0.15);
-      color: #208099;
+      color: #32b8c6;
     }
 
-    .badge-finance {
-      background-color: rgba(45, 166, 178, 0.15);
-      color: #1a8a9a;
+    .badge-cash {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
     }
 
-    .badge-utilities {
-      background-color: rgba(230, 129, 97, 0.15);
-      color: #a84b2f;
+    .badge-travel {
+      background-color: rgba(156, 39, 176, 0.15);
+      color: #9c27b0;
+    }
+
+    .badge-etf {
+      background-color: rgba(33, 150, 243, 0.15);
+      color: #2196f3;
     }
 
     .badge-other {
-      background-color: rgba(98, 108, 113, 0.15);
-      color: #626c71;
+      background-color: rgba(167, 169, 169, 0.15);
+      color: #a7a9a9;
     }
 
     .action-buttons {
@@ -519,12 +524,13 @@
           <label for="category">Kategorie</label>
           <select id="category">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍔 Essen</option>
-            <option value="vacation">✈️ Reisen</option>
-            <option value="entertainment">🎬 Unterhaltung</option>
+            <option value="food">🍽️ Essen</option>
+            <option value="entertainment">🎉 Vergnügen</option>
+            <option value="shopping">🛍️ Shopping</option>
             <option value="fixed">🏠 Fixkosten</option>
-            <option value="finance">💳 ETFs</option>
-            <option value="utilities">💡 Nebenkosten</option>
+            <option value="cash">💵 Bargeld</option>
+            <option value="travel">✈️ Reisen</option>
+            <option value="etf">📈 ETF</option>
             <option value="other">📌 Sonstiges</option>
           </select>
         </div>
@@ -616,12 +622,13 @@
           <label for="editCategory">Kategorie</label>
           <select id="editCategory">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍔 Essen</option>
-            <option value="vacation">✈️ Reisen</option>
-            <option value="entertainment">🎬 Unterhaltung</option>
+            <option value="food">🍽️ Essen</option>
+            <option value="entertainment">🎉 Vergnügen</option>
+            <option value="shopping">🛍️ Shopping</option>
             <option value="fixed">🏠 Fixkosten</option>
-            <option value="finance">💳 ETFs</option>
-            <option value="utilities">💡 Nebenkosten</option>
+            <option value="cash">💵 Bargeld</option>
+            <option value="travel">✈️ Reisen</option>
+            <option value="etf">📈 ETF</option>
             <option value="other">📌 Sonstiges</option>
           </select>
         </div>
@@ -895,12 +902,13 @@
 
     function getCategoryLabel(category) {
       const labels = {
-        food: '🍔 Essen',
-        vacation: '✈️ Reisen',
-        entertainment: '🎬 Unterhaltung',
+        food: '🍽️ Essen',
+        entertainment: '🎉 Vergnügen',
+        shopping: '🛍️ Shopping',
         fixed: '🏠 Fixkosten',
-        finance: '💳 ETFs',
-        utilities: '💡 Nebenkosten',
+        cash: '💵 Bargeld',
+        travel: '✈️ Reisen',
+        etf: '📈 ETF',
         other: '📌 Sonstiges'
       };
       return labels[category] || category;
