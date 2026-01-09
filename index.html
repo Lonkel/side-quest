@@ -30,11 +30,46 @@
       font-size: 16px;
     }
 
-    #newReportBtn {
-      width: 100%;
-      padding: 16px 24px;
-      font-size: 16px;
+    .form-section {
+      background-color: var(--color-surface);
+      padding: var(--space-24);
+      border-radius: var(--radius-base);
+      margin-bottom: var(--space-24);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
       margin-bottom: var(--space-16);
+    }
+
+    label {
+      font-weight: 500;
+      margin-bottom: var(--space-8);
+      font-size: 14px;
+    }
+
+    input {
+      padding: var(--space-8) var(--space-16);
+      border: 1px solid rgba(94, 82, 64, 0.2);
+      border-radius: var(--radius-base);
+      font-size: 14px;
+      font-family: inherit;
+      background-color: var(--color-surface);
+      color: var(--color-text);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(50, 184, 198, 0.15);
+    }
+
+    #createReportBtn {
+      width: 100%;
+      padding: 12px 24px;
+      font-size: 16px;
     }
 
     .info-text {
@@ -47,10 +82,23 @@
 <body>
   <div class="landing-container">
     <h1>💰 Ausgabenberichte</h1>
-    <p>Verwalte deine Ausgaben einfach und übersichtlich. Erstelle einen neuen Bericht, um zu starten.</p>
-    <button class="btn-primary" id="newReportBtn">Neuen Bericht anlegen</button>
+    <p>Erstelle einen neuen Bericht und verwalte deine Ausgaben.</p>
+    
+    <div class="form-section">
+      <div class="form-group">
+        <label for="reportName">Name deines Berichts</label>
+        <input 
+          type="text" 
+          id="reportName" 
+          placeholder="z.B. Meine Ausgaben 2026" 
+          autofocus
+        />
+      </div>
+      <button class="btn-primary" id="createReportBtn">Bericht erstellen</button>
+    </div>
+
     <div class="info-text">
-      <p>💡 Tipp: Speichert euch den Link ab, um später auf eure Ausgaben zuzugreifen.</p>
+      <p>💡 Tipp: Du erhältst einen persönlichen Link, den du speichern kannst.</p>
     </div>
   </div>
 
@@ -58,22 +106,40 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script>
-    document.getElementById('newReportBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('newReportBtn');
+    document.getElementById('createReportBtn').addEventListener('click', createReport);
+    document.getElementById('reportName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') createReport();
+    });
+
+    async function createReport() {
+      const name = document.getElementById('reportName').value.trim();
+
+      if (!name) {
+        alert('Bitte gib einen Namen für deinen Bericht ein.');
+        return;
+      }
+
+      const btn = document.getElementById('createReportBtn');
       btn.disabled = true;
       btn.textContent = 'Wird erstellt...';
 
       try {
+        // Generiere eindeutigen Link
+        const link = generateUniqueLink();
+
         const { data, error } = await db
           .from('reports')
-          .insert({})
+          .insert({
+            name,
+            link
+          })
           .select('id')
           .single();
 
         if (error) {
           alert('Fehler beim Anlegen des Berichts: ' + error.message);
           btn.disabled = false;
-          btn.textContent = 'Neuen Bericht anlegen';
+          btn.textContent = 'Bericht erstellen';
           return;
         }
 
@@ -82,9 +148,15 @@
       } catch (error) {
         alert('Fehler: ' + error.message);
         btn.disabled = false;
-        btn.textContent = 'Neuen Bericht anlegen';
+        btn.textContent = 'Bericht erstellen';
       }
-    });
+    }
+
+    function generateUniqueLink() {
+      const baseUrl = window.location.origin;
+      const uuid = crypto.randomUUID();
+      return `${baseUrl}/report.html?report_id=${uuid}`;
+    }
   </script>
 </body>
 </html>
