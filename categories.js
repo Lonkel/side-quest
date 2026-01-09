@@ -9,6 +9,18 @@ if (!reportId) {
 
 let categories = [];
 
+// Standard-Kategorien
+const defaultCategories = [
+  { icon: '🍽️', key: 'food', name: 'Essen', color: '#ff5459' },
+  { icon: '🎉', key: 'entertainment', name: 'Vergnügen', color: '#32b8c6' },
+  { icon: '🛍️', key: 'shopping', name: 'Shopping', color: '#ff9c64' },
+  { icon: '🏠', key: 'fixed', name: 'Fixkosten', color: '#32b8c6' },
+  { icon: '💵', key: 'cash', name: 'Bargeld', color: '#4caf50' },
+  { icon: '✈️', key: 'travel', name: 'Reisen', color: '#9c27b0' },
+  { icon: '📈', key: 'etf', name: 'ETF', color: '#2196f3' },
+  { icon: '📌', key: 'other', name: 'Sonstiges', color: '#a7a9a9' }
+];
+
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('backBtn').addEventListener('click', () => {
     window.location.href = `/report.html?report_id=${reportId}`;
@@ -29,7 +41,37 @@ async function loadCategories() {
 
     if (error) throw error;
 
-    categories = data || [];
+    // Kombiniere DB-Kategorien mit Default-Kategorien
+    const dbCategories = data || [];
+    const dbKeys = dbCategories.map(c => c.key);
+    
+    // Füge Default-Kategorien hinzu, die noch nicht in der DB sind
+    const defaultToAdd = defaultCategories.filter(dc => !dbKeys.includes(dc.key));
+    
+    // Wenn Default-Kategorien fehlen, füge sie zur DB hinzu
+    if (defaultToAdd.length > 0) {
+      const toInsert = defaultToAdd.map(cat => ({
+        report_id: reportId,
+        icon: cat.icon,
+        key: cat.key,
+        name: cat.name,
+        color: cat.color
+      }));
+
+      await db.from('categories').insert(toInsert);
+      
+      // Neu laden
+      const { data: newData } = await db
+        .from('categories')
+        .select('*')
+        .eq('report_id', reportId)
+        .order('created_at', { ascending: true });
+      
+      categories = newData || [];
+    } else {
+      categories = dbCategories;
+    }
+
     renderCategories();
   } catch (error) {
     console.error('Fehler beim Laden:', error);
@@ -41,15 +83,37 @@ function renderCategories() {
   const tbody = document.getElementById('categoryTable');
 
   if (!categories || categories.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-message">Keine Kategorien angelegt. Füge deine erste hinzu!</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-message">Keine Kategorien angelegt.</td></tr>';
     return;
   }
 
   tbody.innerHTML = categories.map(cat => `
     <tr>
-      <td class="icon-cell">${cat.icon || '📌'}</td>
-      <td><input type="text" value="${cat.key}" onchange="updateCategory('${cat.id}', 'key', this.value)" style="width: 100%; padding: 6px 8px;" /></td>
-      <td><input type="text" value="${cat.name}" onchange="updateCategory('${cat.id}', 'name', this.value)" style="width: 100%; padding: 6px 8px;" /></td>
+      <td class="icon-cell">
+        <input 
+          type="text" 
+          value="${cat.icon || '📌'}" 
+          onchange="updateCategory('${cat.id}', 'icon', this.value)"
+          style="width: 40px; padding: 6px 4px; text-align: center; font-size: 18px;"
+          maxlength="2"
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          value="${cat.key}" 
+          onchange="updateCategory('${cat.id}', 'key', this.value)"
+          style="width: 100%; padding: 6px 8px;"
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          value="${cat.name}" 
+          onchange="updateCategory('${cat.id}', 'name', this.value)"
+          style="width: 100%; padding: 6px 8px;"
+        />
+      </td>
       <td>
         <input 
           type="color" 
@@ -73,6 +137,12 @@ async function addCategory() {
 
   if (!key || !name) {
     alert('Bitte Key und Name ausfüllen.');
+    return;
+  }
+
+  // Prüfe, ob Key bereits existiert
+  if (categories.some(c => c.key === key)) {
+    alert('Dieser Key existiert bereits.');
     return;
   }
 
@@ -134,4 +204,3 @@ window.deleteCategory = async (id) => {
     alert('Fehler beim Löschen: ' + error.message);
   }
 };
-
