@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Ausgaben Tracker</h1>
+
+    <div class="summary-section">
+      <div class="summary-card">
+        <div class="summary-label">Gesamt Ausgaben (heute)</div>
+        <div class="summary-value" id="totalToday">€0,00</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Gesamt Ausgaben (diesen Monat)</div>
+        <div class="summary-value" id="totalMonth">€0,00</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Durchschnitt pro Tag</div>
+        <div class="summary-value" id="avgPerDay">€0,00</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Neue Ausgabe hinzufügen</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="date">Datum</label>
+          <input type="date" id="date" />
+        </div>
+        <div class="form-group">
+          <label for="category">Kategorie</label>
+          <select id="category">
+            <option value="">-- Kategorie wählen --</option>
+            <option value="food">🍽️ Essen</option>
+            <option value="entertainment">🎉 Vergnügen</option>
+            <option value="shopping">🛍️ Shopping</option>
+            <option value="fixed">🏠 Fixkosten</option>
+            <option value="cash">💵 Bargeld</option>
+            <option value="travel">✈️ Reisen</option>
+            <option value="etf">📈 ETF</option>
+            <option value="other">📌 Sonstiges</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="amount">Betrag (€)</label>
+          <input type="number" id="amount" step="0.01" min="0" placeholder="0,00" />
+        </div>
+      </div>
+      <div class="button-group">
+        <button class="btn-primary" id="submitBtn">Hinzufügen</button>
+        <button class="btn-secondary" id="resetBtn">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <!-- Tab Structure -->
+    <div class="tabs-wrapper">
+      <!-- Year Tabs (Ebene 1) -->
+      <div class="year-tabs" id="yearTabs">
+        <button class="year-tab active" data-year="2026">2026</button>
+        <button class="year-tab" data-year="2025">2025</button>
+        <button class="year-tab" data-year="2024">2024</button>
+        <button class="year-tab" data-year="all">Gesamt</button>
+      </div>
+
+      <!-- Month Tabs (Ebene 2) -->
+      <div class="month-tabs" id="monthTabs">
+        <button class="month-tab" data-month="12">Dezember</button>
+        <button class="month-tab" data-month="11">November</button>
+        <button class="month-tab" data-month="10">Oktober</button>
+        <button class="month-tab" data-month="09">September</button>
+        <button class="month-tab" data-month="08">August</button>
+        <button class="month-tab" data-month="07">Juli</button>
+        <button class="month-tab" data-month="06">Juni</button>
+        <button class="month-tab" data-month="05">Mai</button>
+        <button class="month-tab" data-month="04">April</button>
+        <button class="month-tab" data-month="03">März</button>
+        <button class="month-tab" data-month="02">Februar</button>
+        <button class="month-tab active" data-month="01">Januar</button>
+        <button class="month-tab" data-month="overview">Übersicht</button>
+      </div>
+    </div>
+
+    <!-- Content Tabs (Ebene 3) -->
+    <div class="content-tabs" id="contentTabs">
+      <button class="content-tab active" data-content="expenses">Ausgaben</button>
+      <button class="content-tab" data-content="statistics">Statistiken</button>
+    </div>
+
+    <!-- Ausgaben Section -->
+    <div class="content-section active" id="expensesSection">
+      <div class="table-section">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Datum</th>
+              <th>Kategorie</th>
+              <th class="text-right">Betrag</th>
+              <th class="text-right">Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTable" draggable="false">
+            <tr class="empty-state">
+              <td colspan="5">Keine Ausgaben vorhanden. Füge deine erste Ausgabe hinzu!</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Statistiken Section -->
+    <div class="content-section" id="statisticsSection">
+      <div class="stats-section">
+        <p>Grafiken und Statistiken werden hier angezeigt</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Ausgabe bearbeiten</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="editDate">Datum</label>
+          <input type="date" id="editDate" />
+        </div>
+        <div class="form-group">
+          <label for="editCategory">Kategorie</label>
+          <select id="editCategory">
+            <option value="">-- Kategorie wählen --</option>
+            <option value="food">🍽️ Essen</option>
+            <option value="entertainment">🎉 Vergnügen</option>
+            <option value="shopping">🛍️ Shopping</option>
+            <option value="fixed">🏠 Fixkosten</option>
+            <option value="cash">💵 Bargeld</option>
+            <option value="travel">✈️ Reisen</option>
+            <option value="etf">📈 ETF</option>
+            <option value="other">📌 Sonstiges</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editAmount">Betrag (€)</label>
+          <input type="number" id="editAmount" step="0.01" min="0" placeholder="0,00" />
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-primary" id="saveBtn">Speichern</button>
+        <button class="btn-secondary" id="cancelBtn">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="report.js"></script>
+</body>
+</html>
 
