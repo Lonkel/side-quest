@@ -1,5 +1,12 @@
 // report.js
 
+const reportId = new URLSearchParams(window.location.search).get('report_id');
+
+if (!reportId) {
+  alert('Kein Bericht ausgewählt. Bitte über die Startseite öffnen.');
+  window.location.href = '/index.html';
+}
+
 let expenses = [];
 let isLoading = false;
 let editingId = null;
@@ -29,6 +36,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // Content Tab Listeners
   document.querySelectorAll('.content-tab').forEach(btn => {
     btn.addEventListener('click', switchContent);
+  });
+
+  // Categories Button
+  document.getElementById('categoryBtn').addEventListener('click', () => {
+    window.location.href = `/categories.html?report_id=${reportId}`;
   });
 
   loadExpenses();
@@ -87,6 +99,7 @@ async function loadExpenses() {
     const { data, error } = await db
       .from('expenses')
       .select('*')
+      .eq('report_id', reportId)
       .order('date', { ascending: false });
 
     if (error) throw error;
@@ -137,7 +150,8 @@ async function addExpense(event) {
       .insert({
         date,
         category,
-        amount
+        amount,
+        report_id: reportId
       });
 
     if (error) throw error;
@@ -352,4 +366,3 @@ function updateSummary() {
 // Global Functions
 window.deleteExpense = deleteExpense;
 window.openEditModal = openEditModal;
-
