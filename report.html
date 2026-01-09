@@ -8,10 +8,29 @@
 </head>
 <body>
   <div class="container">
-   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); gap: var(--space-16);">
-    <h1 style="margin: 0; flex: 1;">💰 Ausgaben Tracker</h1>
-    <button class="btn-secondary" id="categoryBtn" style="white-space: nowrap;">Kategorien</button>
-  </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); gap: var(--space-16);">
+      <div style="display: flex; align-items: center; gap: var(--space-8); flex: 1;">
+        <h1 style="margin: 0;">💰 <span id="reportTitle">Ausgaben Tracker</span></h1>
+        <button class="icon-btn" id="editTitleBtn" style="padding: 4px 8px; color: var(--color-primary);" title="Titel bearbeiten">✎</button>
+      </div>
+      <button class="btn-secondary" id="categoryBtn" style="white-space: nowrap;">Kategorien</button>
+    </div>
+
+    <!-- Edit Title Modal -->
+    <div id="editTitleModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">Berichtstitel bearbeiten</div>
+        <div class="form-group">
+          <label for="editTitleInput">Neuer Titel</label>
+          <input type="text" id="editTitleInput" />
+        </div>
+        <div class="modal-buttons">
+          <button class="btn-primary" id="saveTitleBtn">Speichern</button>
+          <button class="btn-secondary" id="cancelTitleBtn">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+
 
 
     <div class="summary-section">
