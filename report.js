@@ -16,6 +16,7 @@ let selectedMonth = '01';
 let selectedContent = 'expenses';
 let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
+let monthlyBudget = 0;
 
 // DOM ready
 window.addEventListener('DOMContentLoaded', () => {
@@ -61,7 +62,7 @@ async function loadReport() {
   try {
     const { data, error } = await db
       .from('reports')
-      .select('name')
+      .select('name, monthly_budget')
       .eq('id', reportId)
       .single();
 
@@ -70,6 +71,10 @@ async function loadReport() {
     if (data && data.name) {
       reportTitle = data.name;
       document.getElementById('reportTitle').textContent = reportTitle;
+    }
+
+    if (data && typeof data.monthly_budget === 'number') {
+      monthlyBudget = data.monthly_budget;
     }
   } catch (error) {
     console.error('Fehler beim Laden des Reports:', error);
@@ -477,23 +482,31 @@ function formatCurrency(value) {
 }
 
 function updateSummary() {
-  const today = new Date().toISOString().split('T')[0];
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  // Wenn "Gesamt" oder "Übersicht" gewählt ist, KPIs auf 0
+  if (selectedYear === 'all' || selectedMonth === 'overview') {
+    document.getElementById('totalMonth').textContent = formatCurrency(0);
+    document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(0);
+    document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
+    return;
+  }
 
-  const todayExpenses = expenses
-    .filter(e => e.date === today)
-    .reduce((sum, e) => sum + e.amount, 0);
+  const monthPrefix = `${selectedYear}-${selectedMonth}`; // z.B. "2026-01"
 
+  // 1. Alle Ausgaben im gewählten Monat
   const monthExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth))
+    .filter(e => e.date.startsWith(monthPrefix))
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const avgPerDay = monthExpenses / daysInMonth;
+  // 2. Ausgaben im Monat ohne Fix & ETF
+  const monthExpensesWithoutFixedEtf = expenses
+    .filter(e => e.date.startsWith(monthPrefix))
+    .filter(e => e.category !== 'fixed' && e.category !== 'etf')
+    .reduce((sum, e) => sum + e.amount, 0);
 
-  document.getElementById('totalToday').textContent = formatCurrency(todayExpenses);
+  // Update KPI-Elemente
   document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
-  document.getElementById('avgPerDay').textContent = formatCurrency(avgPerDay);
+  document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(monthExpensesWithoutFixedEtf);
+  document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
 }
 
 // ===== GLOBAL FUNCTIONS =====
