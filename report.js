@@ -243,11 +243,6 @@ async function loadCategories() {
 
     // Aktualisiere Select-Optionen
     updateCategorySelects();
-
-    // Rendere Chart wenn Statistiken aktiv sind
-    if (selectedContent === 'statistics') {
-      renderCategoryPieChart();
-    }
   } catch (error) {
     console.error('Fehler beim Laden der Kategorien:', error);
   }
@@ -349,7 +344,7 @@ function switchContent(e) {
     document.getElementById('expensesSection').classList.add('active');
   } else if (selectedContent === 'statistics') {
     document.getElementById('statisticsSection').classList.add('active');
-    renderCategoryPieChart(); // Rendere Chart beim Tab-Wechsel
+    renderCategoryPieChart();
   }
 }
 
@@ -370,9 +365,6 @@ async function loadExpenses() {
     expenses = data || [];
     renderTable();
     updateSummary();
-    if (selectedContent === 'statistics') {
-      renderCategoryPieChart();
-    }
     isLoading = false;
   } catch (error) {
     console.error('Fehler beim Laden:', error);
@@ -602,9 +594,8 @@ function renderCategoryPieChart() {
   if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
-
-  // Gleiche Filterlogik wie Tabelle
   const filtered = getFilteredExpenses();
+
   if (!filtered || filtered.length === 0) {
     if (categoryPieChart) {
       categoryPieChart.destroy();
@@ -613,7 +604,6 @@ function renderCategoryPieChart() {
     return;
   }
 
-  // Summe pro Kategorie berechnen
   const sumsByCategory = filtered.reduce((acc, exp) => {
     const catKey = exp.category || 'other';
     acc[catKey] = (acc[catKey] || 0) + exp.amount;
@@ -636,7 +626,6 @@ function renderCategoryPieChart() {
     borderColors.push(color);
   });
 
-  // Wenn alle Werte 0 sind → kein Chart
   const totalSum = values.reduce((s, v) => s + v, 0);
   if (totalSum <= 0) {
     if (categoryPieChart) {
@@ -646,17 +635,16 @@ function renderCategoryPieChart() {
     return;
   }
 
-  // Vorhandenen Chart zerstören
   if (categoryPieChart) {
     categoryPieChart.destroy();
   }
 
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
-     {
+    data: {
       labels: labels,
       datasets: [{
-         values,
+        data: values,
         backgroundColor: backgroundColors,
         borderColor: borderColors,
         borderWidth: 1
