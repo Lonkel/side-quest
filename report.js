@@ -16,7 +16,23 @@ let selectedMonth = '01';
 let selectedContent = 'expenses';
 let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
-let monthlyBudget = 0;
+let budgetHistoryMap = {}; // { "2026-01": 1000, "2026-02": 1000, ... }
+
+// Monats-Namen für UI
+const monthNames = {
+  '01': 'Januar',
+  '02': 'Februar',
+  '03': 'März',
+  '04': 'April',
+  '05': 'Mai',
+  '06': 'Juni',
+  '07': 'Juli',
+  '08': 'August',
+  '09': 'September',
+  '10': 'Oktober',
+  '11': 'November',
+  '12': 'Dezember'
+};
 
 // DOM ready
 window.addEventListener('DOMContentLoaded', () => {
@@ -30,6 +46,11 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('editTitleBtn').addEventListener('click', openEditTitleModal);
   document.getElementById('saveTitleBtn').addEventListener('click', saveTitle);
   document.getElementById('cancelTitleBtn').addEventListener('click', closeEditTitleModal);
+
+  // Budget Button
+  document.getElementById('budgetBtn').addEventListener('click', openBudgetModal);
+  document.getElementById('saveBudgetBtn').addEventListener('click', saveBudget);
+  document.getElementById('cancelBudgetBtn').addEventListener('click', closeBudgetModal);
 
   // Year Tab Listeners
   document.querySelectorAll('.year-tab').forEach(btn => {
@@ -52,6 +73,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   loadReport();
+  loadBudgetHistory();
   loadCategories();
   loadExpenses();
 });
@@ -62,7 +84,7 @@ async function loadReport() {
   try {
     const { data, error } = await db
       .from('reports')
-      .select('name, monthly_budget')
+      .select('name')
       .eq('id', reportId)
       .single();
 
@@ -71,10 +93,6 @@ async function loadReport() {
     if (data && data.name) {
       reportTitle = data.name;
       document.getElementById('reportTitle').textContent = reportTitle;
-    }
-
-    if (data && typeof data.monthly_budget === 'number') {
-      monthlyBudget = data.monthly_budget;
     }
   } catch (error) {
     console.error('Fehler beim Laden des Reports:', error);
@@ -112,6 +130,95 @@ async function saveTitle() {
     closeEditTitleModal();
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
+    alert('Fehler beim Speichern: ' + error.message);
+  }
+}
+
+// ===== BUDGET FUNCTIONS =====
+
+async function loadBudgetHistory() {
+  try {
+    const { data, error } = await db
+      .from('budget_history')
+      .select('year_month, budget_amount')
+      .eq('report_id', reportId);
+
+    if (error) throw error;
+
+    // Erstelle Map für schnellen Zugriff
+    budgetHistoryMap = {};
+    (data || []).forEach(row => {
+      budgetHistoryMap[row.year_month] = row.budget_amount;
+    });
+  } catch (error) {
+    console.error('Fehler beim Laden der Budget-Historie:', error);
+  }
+}
+
+function getBudgetForMonth(year, month) {
+  const key = `${year}-${month}`;
+  return budgetHistoryMap[key] || 0;
+}
+
+function openBudgetModal() {
+  if (selectedYear === 'all' || selectedMonth === 'overview') {
+    alert('Bitte wählen Sie einen spezifischen Monat aus.');
+    return;
+  }
+
+  const monthKey = `${selectedYear}-${selectedMonth}`;
+  const currentBudget = getBudgetForMonth(selectedYear, selectedMonth);
+  const monthName = monthNames[selectedMonth] || selectedMonth;
+
+  document.getElementById('budgetModalMonth').textContent = `${monthName} ${selectedYear}`;
+  document.getElementById('budgetInput').value = currentBudget;
+  document.getElementById('budgetModal').classList.add('active');
+  document.getElementById('budgetInput').focus();
+}
+
+function closeBudgetModal() {
+  document.getElementById('budgetModal').classList.remove('active');
+}
+
+async function saveBudget() {
+  const budgetAmount = parseFloat(document.getElementById('budgetInput').value);
+
+  if (isNaN(budgetAmount) || budgetAmount < 0) {
+    alert('Bitte geben Sie einen gültigen Betrag ein.');
+    return;
+  }
+
+  if (selectedYear === 'all' || selectedMonth === 'overview') {
+    alert('Ungültiger Monat ausgewählt.');
+    return;
+  }
+
+  const monthKey = `${selectedYear}-${selectedMonth}`;
+
+  try {
+    // Upsert: Einfügen oder aktualisieren
+    const { error } = await db
+      .from('budget_history')
+      .upsert(
+        {
+          report_id: reportId,
+          year_month: monthKey,
+          budget_amount: budgetAmount
+        },
+        { onConflict: 'report_id,year_month' }
+      );
+
+    if (error) throw error;
+
+    // Update lokale Map
+    budgetHistoryMap[monthKey] = budgetAmount;
+
+    // Update KPI
+    updateSummary();
+
+    closeBudgetModal();
+  } catch (error) {
+    console.error('Fehler beim Speichern des Budgets:', error);
     alert('Fehler beim Speichern: ' + error.message);
   }
 }
@@ -486,7 +593,7 @@ function updateSummary() {
   if (selectedYear === 'all' || selectedMonth === 'overview') {
     document.getElementById('totalMonth').textContent = formatCurrency(0);
     document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(0);
-    document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
+    document.getElementById('budgetMonth').textContent = formatCurrency(0);
     return;
   }
 
@@ -502,6 +609,9 @@ function updateSummary() {
     .filter(e => e.date.startsWith(monthPrefix))
     .filter(e => e.category !== 'fixed' && e.category !== 'etf')
     .reduce((sum, e) => sum + e.amount, 0);
+
+  // 3. Budget für diesen Monat
+  const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
 
   // Update KPI-Elemente
   document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
