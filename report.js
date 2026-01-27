@@ -17,6 +17,7 @@ let selectedContent = 'expenses';
 let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
 let budgetHistoryMap = {}; // { "2026-01": 1000, "2026-02": 1000, ... }
+let categoryPieChart = null; // Chart.js instance für Kreisdiagramm
 
 // Monats-Namen für UI
 const monthNames = {
@@ -242,6 +243,11 @@ async function loadCategories() {
 
     // Aktualisiere Select-Optionen
     updateCategorySelects();
+
+    // Rendere Chart wenn Statistiken aktiv sind
+    if (selectedContent === 'statistics') {
+      renderCategoryPieChart();
+    }
   } catch (error) {
     console.error('Fehler beim Laden der Kategorien:', error);
   }
@@ -313,6 +319,9 @@ function switchYear(e) {
 
   renderTable();
   updateSummary();
+  if (selectedContent === 'statistics') {
+    renderCategoryPieChart();
+  }
 }
 
 function switchMonth(e) {
@@ -323,6 +332,9 @@ function switchMonth(e) {
 
   renderTable();
   updateSummary();
+  if (selectedContent === 'statistics') {
+    renderCategoryPieChart();
+  }
 }
 
 function switchContent(e) {
@@ -337,6 +349,7 @@ function switchContent(e) {
     document.getElementById('expensesSection').classList.add('active');
   } else if (selectedContent === 'statistics') {
     document.getElementById('statisticsSection').classList.add('active');
+    renderCategoryPieChart(); // Rendere Chart beim Tab-Wechsel
   }
 }
 
@@ -357,6 +370,9 @@ async function loadExpenses() {
     expenses = data || [];
     renderTable();
     updateSummary();
+    if (selectedContent === 'statistics') {
+      renderCategoryPieChart();
+    }
     isLoading = false;
   } catch (error) {
     console.error('Fehler beim Laden:', error);
@@ -577,6 +593,105 @@ function handleDragEnd(e) {
   const allRows = document.querySelectorAll('#expenseTable tr');
   allRows.forEach(row => row.style.opacity = '1');
   draggedRow = null;
+}
+
+// ===== PIE CHART RENDERING =====
+
+function renderCategoryPieChart() {
+  const canvas = document.getElementById('categoryPieChart');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+
+  // Gleiche Filterlogik wie Tabelle
+  const filtered = getFilteredExpenses();
+  if (!filtered || filtered.length === 0) {
+    if (categoryPieChart) {
+      categoryPieChart.destroy();
+      categoryPieChart = null;
+    }
+    return;
+  }
+
+  // Summe pro Kategorie berechnen
+  const sumsByCategory = filtered.reduce((acc, exp) => {
+    const catKey = exp.category || 'other';
+    acc[catKey] = (acc[catKey] || 0) + exp.amount;
+    return acc;
+  }, {});
+
+  const labels = [];
+  const values = [];
+  const backgroundColors = [];
+  const borderColors = [];
+
+  Object.entries(sumsByCategory).forEach(([key, total]) => {
+    const cat = categoryMap[key];
+    const label = cat ? `${cat.icon} ${cat.name}` : key;
+    const color = cat ? cat.color : '#a7a9a9';
+
+    labels.push(label);
+    values.push(total);
+    backgroundColors.push(hexToRgba(color, 0.7));
+    borderColors.push(color);
+  });
+
+  // Wenn alle Werte 0 sind → kein Chart
+  const totalSum = values.reduce((s, v) => s + v, 0);
+  if (totalSum <= 0) {
+    if (categoryPieChart) {
+      categoryPieChart.destroy();
+      categoryPieChart = null;
+    }
+    return;
+  }
+
+  // Vorhandenen Chart zerstören
+  if (categoryPieChart) {
+    categoryPieChart.destroy();
+  }
+
+  categoryPieChart = new Chart(ctx, {
+    type: 'pie',
+     {
+      labels,
+      datasets: [{
+         values,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#f5f5f5',
+            font: {
+              size: 12
+            },
+            padding: 15
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              const percent = (value / totalSum) * 100;
+              const label = context.label || '';
+              return `${label}: ${formatCurrency(value)} (${percent.toFixed(1)} %)`;
+            }
+          },
+          titleColor: '#f5f5f5',
+          bodyColor: '#f5f5f5',
+          backgroundColor: 'rgba(31, 33, 33, 0.8)'
+        }
+      }
+    }
+  });
 }
 
 // ===== SUMMARY FUNCTIONS =====
