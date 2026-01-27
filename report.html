@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Expense Tracker</title>
   <link rel="stylesheet" href="styles.css">
-      <!-- Chart.js für Kreisdiagramm -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
   <div class="container">
@@ -77,14 +75,6 @@
           <label for="category">Kategorie</label>
           <select id="category">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍽️ Essen</option>
-            <option value="entertainment">🎉 Vergnügen</option>
-            <option value="shopping">🛍️ Shopping</option>
-            <option value="fixed">🏠 Fixkosten</option>
-            <option value="cash">💵 Bargeld</option>
-            <option value="travel">✈️ Reisen</option>
-            <option value="etf">📈 ETF</option>
-            <option value="other">📌 Sonstiges</option>
           </select>
         </div>
         <div class="form-group">
@@ -175,14 +165,6 @@
           <label for="editCategory">Kategorie</label>
           <select id="editCategory">
             <option value="">-- Kategorie wählen --</option>
-            <option value="food">🍽️ Essen</option>
-            <option value="entertainment">🎉 Vergnügen</option>
-            <option value="shopping">🛍️ Shopping</option>
-            <option value="fixed">🏠 Fixkosten</option>
-            <option value="cash">💵 Bargeld</option>
-            <option value="travel">✈️ Reisen</option>
-            <option value="etf">📈 ETF</option>
-            <option value="other">📌 Sonstiges</option>
           </select>
         </div>
         <div class="form-group">
@@ -197,8 +179,10 @@
     </div>
   </div>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="supabase.js"></script>
   <script src="report.js"></script>
 </body>
