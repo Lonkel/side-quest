@@ -613,7 +613,6 @@ function renderCategoryPieChart() {
   const labels = [];
   const values = [];
   const backgroundColors = [];
-  const borderColors = [];
 
   Object.entries(sumsByCategory).forEach(([key, total]) => {
     const cat = categoryMap[key];
@@ -623,7 +622,6 @@ function renderCategoryPieChart() {
     labels.push(label);
     values.push(total);
     backgroundColors.push(hexToRgba(color, 0.7));
-    borderColors.push(color);
   });
 
   const totalSum = values.reduce((s, v) => s + v, 0);
@@ -658,22 +656,15 @@ function renderCategoryPieChart() {
           position: 'bottom',
           labels: {
             color: '#f5f5f5',
-            font: {
-              size: 12
-            },
+            font: { size: 12 },
             padding: 15
           }
         },
-        tooltip: {
-          enabled: false
-        },
+        tooltip: { enabled: false },
         datalabels: {
           color: '#ffffff',
-          font: {
-            size: 14,
-            weight: 'bold'
-          },
-          formatter: (value, context) => {
+          font: { size: 14, weight: 'bold' },
+          formatter: (value) => {
             const percent = ((value / totalSum) * 100).toFixed(1);
             const amount = formatCurrency(value);
             return `${percent}%\n(${amount})`;
@@ -681,9 +672,11 @@ function renderCategoryPieChart() {
           textAlign: 'center'
         }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
+
 
 
 // ===== SUMMARY FUNCTIONS =====
