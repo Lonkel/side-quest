@@ -8,13 +8,32 @@
 </head>
 <body>
   <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); gap: var(--space-16);">
-      <div style="display: flex; align-items: center; gap: var(--space-8); flex: 1;">
-        <h1 style="margin: 0;">💰 <span id="reportTitle">Ausgaben Tracker</span></h1>
-        <button class="icon-btn" id="editTitleBtn" style="padding: 4px 8px; color: var(--color-primary);" title="Titel bearbeiten">✎</button>
-      </div>
-      <button class="btn-secondary" id="categoryBtn" style="white-space: nowrap;">Kategorien</button>
-    </div>
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); gap: var(--space-16);">
+				<div style="display: flex; align-items: center; gap: var(--space-8); flex: 1;">
+					<h1 style="margin: 0;">💰 <span id="reportTitle">Ausgaben Tracker</span></h1>
+					<button class="icon-btn" id="editTitleBtn" style="padding: 4px 8px; color: var(--color-primary);" title="Titel bearbeiten">✎</button>
+				</div>
+				<div style="display: flex; gap: var(--space-8);">
+					<button class="btn-secondary" id="budgetBtn" style="white-space: nowrap;">💰 Budget</button>
+					<button class="btn-secondary" id="categoryBtn" style="white-space: nowrap;">Kategorien</button>
+				</div>
+			</div>
+
+			<!-- Budget Modal -->
+			<div id="budgetModal" class="modal">
+				<div class="modal-content">
+					<div class="modal-header">Budget für <span id="budgetModalMonth">Januar 2026</span></div>
+					<div class="form-group">
+						<label for="budgetInput">Budget (€)</label>
+						<input type="number" id="budgetInput" placeholder="0,00" step="0.01" min="0" />
+					</div>
+					<div class="modal-buttons">
+						<button class="btn-primary" id="saveBudgetBtn">Speichern</button>
+						<button class="btn-secondary" id="cancelBudgetBtn">Abbrechen</button>
+					</div>
+				</div>
+			</div>
+
 
     <!-- Edit Title Modal -->
     <div id="editTitleModal" class="modal">
