@@ -681,8 +681,7 @@ function renderCategoryPieChart() {
           textAlign: 'center'
         }
       }
-    },
-    plugins: [ChartDataLabels]
+    }
   });
 }
 
