@@ -616,12 +616,12 @@ function renderCategoryPieChart() {
 
   Object.entries(sumsByCategory).forEach(([key, total]) => {
     const cat = categoryMap[key];
-    const label = cat ? `${cat.icon} ${cat.name}` : key;
+    const label = cat ? cat.name : key;
     const color = cat ? cat.color : '#a7a9a9';
 
     labels.push(label);
     values.push(total);
-    backgroundColors.push(hexToRgba(color, 0.7));
+    backgroundColors.push(color);
   });
 
   const totalSum = values.reduce((s, v) => s + v, 0);
@@ -639,10 +639,10 @@ function renderCategoryPieChart() {
 
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
-     data: {
+     {
       labels: labels,
       datasets: [{
-         data: values,
+         values,
         backgroundColor: backgroundColors,
         borderColor: '#1f2121',
         borderWidth: 2
@@ -653,31 +653,34 @@ function renderCategoryPieChart() {
       maintainAspectRatio: true,
       plugins: {
         legend: {
-          position: 'bottom',
-          labels: {
-            color: '#f5f5f5',
-            font: { size: 12 },
-            padding: 15
-          }
+          display: false
         },
-        tooltip: { enabled: false },
+        tooltip: {
+          enabled: false
+        },
         datalabels: {
-          color: '#ffffff',
-          font: { size: 14, weight: 'bold' },
-          formatter: (value) => {
-            const percent = ((value / totalSum) * 100).toFixed(1);
-            const amount = formatCurrency(value);
-            return `${percent}%\n(${amount})`;
+          color: '#333333',
+          backgroundColor: 'transparent',
+          font: {
+            size: 11,
+            weight: 'normal'
           },
-          textAlign: 'center'
+          formatter: (value, context) => {
+            const percent = ((value / totalSum) * 100).toFixed(1);
+            const label = context.chart.data.labels[context.dataIndex];
+            return `${label}\n${percent}%`;
+          },
+          textAlign: 'center',
+          anchor: 'end',
+          align: 'end',
+          offset: 10,
+          padding: 4
         }
       }
     },
     plugins: [ChartDataLabels]
   });
 }
-
-
 
 // ===== SUMMARY FUNCTIONS =====
 
