@@ -654,7 +654,7 @@ function renderCategoryPieChart() {
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
      {
-      labels,
+      labels: labels,
       datasets: [{
          values,
         backgroundColor: backgroundColors,
