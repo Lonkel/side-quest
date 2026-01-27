@@ -641,13 +641,13 @@ function renderCategoryPieChart() {
 
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
-    data: {
+     {
       labels: labels,
       datasets: [{
-        data: values,
+         values,
         backgroundColor: backgroundColors,
-        borderColor: borderColors,
-        borderWidth: 1
+        borderColor: '#1f2121',
+        borderWidth: 2
       }]
     },
     options: {
@@ -665,22 +665,27 @@ function renderCategoryPieChart() {
           }
         },
         tooltip: {
-          callbacks: {
-            label: function(context) {
-              const value = context.parsed;
-              const percent = (value / totalSum) * 100;
-              const label = context.label || '';
-              return `${label}: ${formatCurrency(value)} (${percent.toFixed(1)} %)`;
-            }
+          enabled: false
+        },
+        datalabels: {
+          color: '#ffffff',
+          font: {
+            size: 14,
+            weight: 'bold'
           },
-          titleColor: '#f5f5f5',
-          bodyColor: '#f5f5f5',
-          backgroundColor: 'rgba(31, 33, 33, 0.8)'
+          formatter: (value, context) => {
+            const percent = ((value / totalSum) * 100).toFixed(1);
+            const amount = formatCurrency(value);
+            return `${percent}%\n(${amount})`;
+          },
+          textAlign: 'center'
         }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
+
 
 // ===== SUMMARY FUNCTIONS =====
 
