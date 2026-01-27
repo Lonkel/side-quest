@@ -639,10 +639,10 @@ function renderCategoryPieChart() {
 
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
-     {
+     data: {
       labels: labels,
       datasets: [{
-         values,
+         data: values,
         backgroundColor: backgroundColors,
         borderColor: '#1f2121',
         borderWidth: 2
