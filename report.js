@@ -641,6 +641,7 @@ function renderCategoryPieChart() {
     type: 'pie',
      data:{
       labels: labels,
+       datasets: [{
          data:values,
         backgroundColor: backgroundColors,
         borderColor: '#1f2121',
