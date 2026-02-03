@@ -7,6 +7,9 @@ if (!reportId) {
   window.location.href = '/index.html';
 }
 
+// Debug: Report ID prüfen
+console.log('DEBUG reportId:', reportId);
+
 let expenses = [];
 let isLoading = false;
 let editingId = null;
@@ -85,18 +88,23 @@ async function loadReport() {
   try {
     const { data, error } = await db
       .from('reports')
-      .select('name')
+      .select('name, id')
       .eq('id', reportId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Laden des Reports:', error);
+      return;
+    }
+
+    console.log('DEBUG loadReport data:', data);
 
     if (data && data.name) {
       reportTitle = data.name;
       document.getElementById('reportTitle').textContent = reportTitle;
     }
   } catch (error) {
-    console.error('Fehler beim Laden des Reports:', error);
+    console.error('Fehler beim Laden des Reports (catch):', error);
   }
 }
 
@@ -119,18 +127,26 @@ async function saveTitle() {
   }
 
   try {
-    const { error } = await db
+    const { data, error } = await db
       .from('reports')
       .update({ name: newTitle })
-      .eq('id', reportId);
+      .eq('id', reportId)
+      .select('id, name')
+      .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern: ' + error.message);
+      return;
+    }
+
+    console.log('DEBUG saveTitle updated:', data);
 
     reportTitle = newTitle;
     document.getElementById('reportTitle').textContent = reportTitle;
     closeEditTitleModal();
   } catch (error) {
-    console.error('Fehler beim Speichern:', error);
+    console.error('Fehler beim Speichern (catch):', error);
     alert('Fehler beim Speichern: ' + error.message);
   }
 }
@@ -141,18 +157,22 @@ async function loadBudgetHistory() {
   try {
     const { data, error } = await db
       .from('budget_history')
-      .select('year_month, budget_amount')
+      .select('year_month, budget_amount, report_id')
       .eq('report_id', reportId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Laden der Budget-Historie:', error);
+      return;
+    }
 
-    // Erstelle Map für schnellen Zugriff
+    console.log('DEBUG loadBudgetHistory rows:', data);
+
     budgetHistoryMap = {};
     (data || []).forEach(row => {
       budgetHistoryMap[row.year_month] = row.budget_amount;
     });
   } catch (error) {
-    console.error('Fehler beim Laden der Budget-Historie:', error);
+    console.error('Fehler beim Laden der Budget-Historie (catch):', error);
   }
 }
 
@@ -167,7 +187,6 @@ function openBudgetModal() {
     return;
   }
 
-  const monthKey = `${selectedYear}-${selectedMonth}`;
   const currentBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const monthName = monthNames[selectedMonth] || selectedMonth;
 
@@ -197,8 +216,7 @@ async function saveBudget() {
   const monthKey = `${selectedYear}-${selectedMonth}`;
 
   try {
-    // Upsert: Einfügen oder aktualisieren
-    const { error } = await db
+    const { data, error } = await db
       .from('budget_history')
       .upsert(
         {
@@ -207,19 +225,23 @@ async function saveBudget() {
           budget_amount: budgetAmount
         },
         { onConflict: 'report_id,year_month' }
-      );
+      )
+      .select('report_id, year_month, budget_amount');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Speichern des Budgets:', error);
+      alert('Fehler beim Speichern: ' + error.message);
+      return;
+    }
 
-    // Update lokale Map
+    console.log('DEBUG saveBudget upsert result:', data);
+
     budgetHistoryMap[monthKey] = budgetAmount;
 
-    // Update KPI
     updateSummary();
-
     closeBudgetModal();
   } catch (error) {
-    console.error('Fehler beim Speichern des Budgets:', error);
+    console.error('Fehler beim Speichern des Budgets (catch):', error);
     alert('Fehler beim Speichern: ' + error.message);
   }
 }
@@ -233,18 +255,21 @@ async function loadCategories() {
       .select('*')
       .eq('report_id', reportId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Laden der Kategorien:', error);
+      return;
+    }
 
-    // Erstelle Map für schnellen Zugriff
+    console.log('DEBUG loadCategories rows:', data);
+
     categoryMap = {};
     (data || []).forEach(cat => {
       categoryMap[cat.key] = cat;
     });
 
-    // Aktualisiere Select-Optionen
     updateCategorySelects();
   } catch (error) {
-    console.error('Fehler beim Laden der Kategorien:', error);
+    console.error('Fehler beim Laden der Kategorien (catch):', error);
   }
 }
 
@@ -255,7 +280,6 @@ function updateCategorySelects() {
     const select = document.getElementById(selectId);
     if (!select) return;
 
-    // Behalte "-- Kategorie wählen --"
     const defaultOption = select.querySelector('option[value=""]');
     select.innerHTML = '';
     
@@ -263,7 +287,6 @@ function updateCategorySelects() {
       select.appendChild(defaultOption);
     }
 
-    // Füge alle Kategorien hinzu
     Object.values(categoryMap).forEach(cat => {
       const option = document.createElement('option');
       option.value = cat.key;
@@ -360,14 +383,20 @@ async function loadExpenses() {
       .eq('report_id', reportId)
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Laden:', error);
+      isLoading = false;
+      return;
+    }
+
+    console.log('DEBUG loadExpenses rows:', data);
 
     expenses = data || [];
     renderTable();
     updateSummary();
     isLoading = false;
   } catch (error) {
-    console.error('Fehler beim Laden:', error);
+    console.error('Fehler beim Laden (catch):', error);
     isLoading = false;
   }
 }
@@ -404,22 +433,35 @@ async function addExpense(event) {
   isLoading = true;
   document.getElementById('submitBtn').disabled = true;
 
-  try {
-    const { error } = await db
-      .from('expenses')
-      .insert({
-        date,
-        category,
-        amount,
-        report_id: reportId
-      });
+  const row = {
+    date,
+    category,
+    amount,
+    report_id: reportId
+  };
 
-    if (error) throw error;
+  console.log('DEBUG addExpense row:', row);
+
+  try {
+    const { data, error } = await db
+      .from('expenses')
+      .insert(row)
+      .select('*');
+
+    if (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern: ' + error.message);
+      isLoading = false;
+      document.getElementById('submitBtn').disabled = false;
+      return;
+    }
+
+    console.log('DEBUG addExpense inserted:', data);
 
     clearForm();
     await loadExpenses();
   } catch (error) {
-    console.error('Fehler beim Speichern:', error);
+    console.error('Fehler beim Speichern (catch):', error);
     alert('Fehler beim Speichern: ' + error.message);
     isLoading = false;
     document.getElementById('submitBtn').disabled = false;
@@ -457,22 +499,30 @@ async function saveEdit() {
   if (isLoading) return;
   isLoading = true;
 
-  try {
-    const { error } = await db
-      .from('expenses')
-      .update({
-        date,
-        category,
-        amount
-      })
-      .eq('id', editingId);
+  const row = { date, category, amount };
+  console.log('DEBUG saveEdit row:', row, 'id:', editingId);
 
-    if (error) throw error;
+  try {
+    const { data, error } = await db
+      .from('expenses')
+      .update(row)
+      .eq('id', editingId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Fehler beim Aktualisieren:', error);
+      alert('Fehler beim Aktualisieren: ' + error.message);
+      isLoading = false;
+      return;
+    }
+
+    console.log('DEBUG saveEdit updated:', data);
 
     closeModal();
     await loadExpenses();
   } catch (error) {
-    console.error('Fehler beim Aktualisieren:', error);
+    console.error('Fehler beim Aktualisieren (catch):', error);
     alert('Fehler beim Aktualisieren: ' + error.message);
     isLoading = false;
   }
@@ -483,6 +533,7 @@ async function deleteExpense(id) {
   if (!confirm('Wirklich löschen?')) return;
 
   isLoading = true;
+  console.log('DEBUG deleteExpense id:', id);
 
   try {
     const { error } = await db
@@ -490,11 +541,16 @@ async function deleteExpense(id) {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fehler beim Löschen:', error);
+      alert('Fehler beim Löschen: ' + error.message);
+      isLoading = false;
+      return;
+    }
 
     await loadExpenses();
   } catch (error) {
-    console.error('Fehler beim Löschen:', error);
+    console.error('Fehler beim Löschen (catch):', error);
     alert('Fehler beim Löschen: ' + error.message);
     isLoading = false;
   }
@@ -639,10 +695,10 @@ function renderCategoryPieChart() {
 
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
-     data:{
+    data: {
       labels: labels,
-       datasets: [{
-         data:values,
+      datasets: [{
+        data: values,
         backgroundColor: backgroundColors,
         borderColor: '#1f2121',
         borderWidth: 2
@@ -692,7 +748,6 @@ function formatCurrency(value) {
 }
 
 function updateSummary() {
-  // Wenn "Gesamt" oder "Übersicht" gewählt ist, KPIs auf 0
   if (selectedYear === 'all' || selectedMonth === 'overview') {
     document.getElementById('totalMonth').textContent = formatCurrency(0);
     document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(0);
@@ -700,23 +755,19 @@ function updateSummary() {
     return;
   }
 
-  const monthPrefix = `${selectedYear}-${selectedMonth}`; // z.B. "2026-01"
+  const monthPrefix = `${selectedYear}-${selectedMonth}`;
 
-  // 1. Alle Ausgaben im gewählten Monat
   const monthExpenses = expenses
     .filter(e => e.date.startsWith(monthPrefix))
     .reduce((sum, e) => sum + e.amount, 0);
 
-  // 2. Ausgaben im Monat ohne Fix & ETF
   const monthExpensesWithoutFixedEtf = expenses
     .filter(e => e.date.startsWith(monthPrefix))
     .filter(e => e.category !== 'fixed' && e.category !== 'etf')
     .reduce((sum, e) => sum + e.amount, 0);
 
-  // 3. Budget für diesen Monat
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
 
-  // Update KPI-Elemente
   document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
   document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(monthExpensesWithoutFixedEtf);
   document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
