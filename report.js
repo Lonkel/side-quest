@@ -674,15 +674,12 @@ function renderCategoryPieChart() {
     return acc;
   }, {});
 
-  // Sortiere nach Größe
-  const sortedEntries = Object.entries(sumsByCategory)
-    .sort((a, b) => b[1] - a[1]);
-
+  // KEINE Sortierung - natürliche Reihenfolge für bessere Verteilung
   const labels = [];
   const values = [];
   const backgroundColors = [];
 
-  sortedEntries.forEach(([key, total]) => {
+  Object.entries(sumsByCategory).forEach(([key, total]) => {
     const cat = categoryMap[key];
     const label = cat ? cat.name : key;
     const color = cat ? cat.color : '#a7a9a9';
@@ -720,14 +717,14 @@ function renderCategoryPieChart() {
       responsive: true,
       maintainAspectRatio: true,
       layout: {
-        padding: 80  // viel Platz rundherum
+        padding: 80
       },
       plugins: {
         legend: {
           display: false
         },
         tooltip: {
-          enabled: true,  // Tooltip wieder an für zusätzliche Info
+          enabled: true,
           callbacks: {
             label: function(context) {
               const value = context.parsed;
@@ -737,13 +734,11 @@ function renderCategoryPieChart() {
           }
         },
         datalabels: {
-          color: '#333333',  // dunkler für bessere Lesbarkeit auf hellem Hintergrund
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',  // heller Hintergrund
-          borderRadius: 4,
-          borderColor: '#cccccc',
-          borderWidth: 1,
+          color: '#ffffff',
+          backgroundColor: 'transparent',  // kein Hintergrund
+          borderWidth: 0,
           font: {
-            size: 10,
+            size: 11,
             weight: 'bold'
           },
           formatter: (value, context) => {
@@ -751,13 +746,36 @@ function renderCategoryPieChart() {
             const label = context.chart.data.labels[context.dataIndex];
             return `${label}\n${percent}%`;
           },
-          textAlign: 'center',
+          // Dynamische Ausrichtung je nach Position
+          textAlign: function(context) {
+            const index = context.dataIndex;
+            const dataset = context.dataset;
+            const meta = context.chart.getDatasetMeta(0);
+            const element = meta.data[index];
+            
+            // Winkel des Segments bestimmen
+            const angle = (element.startAngle + element.endAngle) / 2;
+            const normalizedAngle = angle % (2 * Math.PI);
+            
+            // Rechte Hälfte: linksbündig, Linke Hälfte: rechtsbündig
+            return normalizedAngle < Math.PI ? 'left' : 'right';
+          },
           anchor: 'end',
-          align: 'end',
-          offset: 20,  // größerer Abstand für Linien-Effekt
-          clamp: false,  // Labels dürfen raus
+          align: function(context) {
+            const index = context.dataIndex;
+            const meta = context.chart.getDatasetMeta(0);
+            const element = meta.data[index];
+            
+            const angle = (element.startAngle + element.endAngle) / 2;
+            const normalizedAngle = angle % (2 * Math.PI);
+            
+            // Labels weiter nach außen
+            return normalizedAngle < Math.PI ? 'start' : 'end';
+          },
+          offset: 10,
+          clamp: false,
           clip: false,
-          padding: 6
+          padding: 4
         }
       }
     },
