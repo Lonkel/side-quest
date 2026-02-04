@@ -332,10 +332,15 @@ function switchYear(e) {
   const monthTabs = document.getElementById('monthTabs');
   if (year === 'all') {
     monthTabs.style.display = 'none';
+    selectedMonth = 'overview';
   } else {
     monthTabs.style.display = 'flex';
+    const targetMonth = (year === currentYear) ? currentMonth : '01';
+    selectedMonth = targetMonth;
+
     document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.month-tab[data-month="01"]').classList.add('active');
+    const monthBtn = document.querySelector(`.month-tab[data-month="${targetMonth}"]`);
+    if (monthBtn) monthBtn.classList.add('active');
   }
 
   renderTable();
