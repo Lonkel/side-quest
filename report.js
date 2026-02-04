@@ -737,7 +737,9 @@ function renderCategoryPieChart() {
           textAlign: 'center',
           anchor: 'end',
           align: 'end',
-          offset: 10,
+          offset: 16,
+          clamp: true,
+          clip: false,
           padding: 4
         }
       }
