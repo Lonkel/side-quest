@@ -705,12 +705,56 @@ function renderCategoryPieChart() {
     type: 'pie',
     data: {
       labels: labels,
-      datasets: [{
-        data: values,
-        backgroundColor: backgroundColors,
-        borderColor: '#1f2121',
-        borderWidth: 2
-      }]
+      datasets: [
+        // Dataset 1: farbige Segmente + Name außen
+        {
+          data: values,
+          backgroundColor: backgroundColors,
+          borderColor: '#1f2121',
+          borderWidth: 2,
+          datalabels: {
+            color: '#ffffff',
+            backgroundColor: 'transparent',
+            font: {
+              size: 12,
+              weight: 'bold'
+            },
+            formatter: (value, context) => {
+              const label = context.chart.data.labels[context.dataIndex];
+              return label;
+            },
+            textAlign: 'center',
+            anchor: 'end',   // außerhalb am Segmentende
+            align: 'end',
+            offset: 12,
+            clamp: true,
+            clip: false,
+            padding: 4
+          }
+        },
+        // Dataset 2: unsichtbar, nur Prozent INNEN
+        {
+          data: values,
+          backgroundColor: 'rgba(0,0,0,0)', // unsichtbar
+          borderWidth: 0,
+          datalabels: {
+            color: '#ffffff',
+            font: {
+              size: 11,
+              weight: 'bold'
+            },
+            formatter: (value) => {
+              const percent = ((value / totalSum) * 100).toFixed(1);
+              return `${percent}%`;
+            },
+            anchor: 'center',  // Mitte des Segments
+            align: 'center',
+            padding: 0,
+            clamp: true,
+            clip: false
+          }
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -724,26 +768,6 @@ function renderCategoryPieChart() {
         },
         tooltip: {
           enabled: false
-        },
-        datalabels: {
-          color: '#ffffff',
-          backgroundColor: 'transparent',
-          font: {
-            size: 12,
-            weight: 'bold'
-          },
-          formatter: (value, context) => {
-            const percent = ((value / totalSum) * 100).toFixed(1);
-            const label = context.chart.data.labels[context.dataIndex];
-            return `${label}\n${percent}%`;
-          },
-          textAlign: 'center',
-          anchor: 'end',
-          align: 'end',
-          offset: 12,
-          clamp: true,
-          clip: false,
-          padding: 4
         }
       }
     },
