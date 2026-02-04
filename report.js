@@ -716,7 +716,7 @@ function renderCategoryPieChart() {
       responsive: true,
       maintainAspectRatio: true,
       layout: {
-        padding: 30
+        padding: 60
       },
       plugins: {
         legend: {
