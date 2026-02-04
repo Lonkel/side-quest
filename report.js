@@ -715,6 +715,9 @@ function renderCategoryPieChart() {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      layout: {
+        padding: 30
+      },
       plugins: {
         legend: {
           display: false
@@ -737,7 +740,7 @@ function renderCategoryPieChart() {
           textAlign: 'center',
           anchor: 'end',
           align: 'end',
-          offset: 16,
+          offset: 12,
           clamp: true,
           clip: false,
           padding: 4
