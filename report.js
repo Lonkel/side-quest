@@ -735,7 +735,7 @@ function renderCategoryPieChart() {
             return `${label}\n${percent}%`;
           },
           textAlign: 'center',
-          anchor: 'center',
+          anchor: 'end',
           align: 'end',
           offset: 10,
           padding: 4
