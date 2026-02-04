@@ -674,7 +674,7 @@ function renderCategoryPieChart() {
     return acc;
   }, {});
 
-  // Sortiere Kategorien nach Größe (größte zuerst)
+  // Sortiere nach Größe
   const sortedEntries = Object.entries(sumsByCategory)
     .sort((a, b) => b[1] - a[1]);
 
@@ -720,20 +720,30 @@ function renderCategoryPieChart() {
       responsive: true,
       maintainAspectRatio: true,
       layout: {
-        padding: 60
+        padding: 80  // viel Platz rundherum
       },
       plugins: {
         legend: {
           display: false
         },
         tooltip: {
-          enabled: false
+          enabled: true,  // Tooltip wieder an für zusätzliche Info
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              const percent = ((value / totalSum) * 100).toFixed(1);
+              return `${context.label}: ${formatCurrency(value)} (${percent}%)`;
+            }
+          }
         },
         datalabels: {
-          color: '#ffffff',
-          backgroundColor: 'transparent',
+          color: '#333333',  // dunkler für bessere Lesbarkeit auf hellem Hintergrund
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',  // heller Hintergrund
+          borderRadius: 4,
+          borderColor: '#cccccc',
+          borderWidth: 1,
           font: {
-            size: 11,
+            size: 10,
             weight: 'bold'
           },
           formatter: (value, context) => {
@@ -744,10 +754,10 @@ function renderCategoryPieChart() {
           textAlign: 'center',
           anchor: 'end',
           align: 'end',
-          offset: 12,
-          clamp: true,
+          offset: 20,  // größerer Abstand für Linien-Effekt
+          clamp: false,  // Labels dürfen raus
           clip: false,
-          padding: 4
+          padding: 6
         }
       }
     },
