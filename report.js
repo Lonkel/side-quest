@@ -723,11 +723,11 @@ function renderCategoryPieChart() {
           enabled: false
         },
         datalabels: {
-          color: '#333333',
+          color: '#ffffff',
           backgroundColor: 'transparent',
           font: {
-            size: 11,
-            weight: 'normal'
+            size: 12,
+            weight: 'bold'
           },
           formatter: (value, context) => {
             const percent = ((value / totalSum) * 100).toFixed(1);
