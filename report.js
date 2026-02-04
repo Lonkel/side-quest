@@ -681,7 +681,7 @@ function renderCategoryPieChart() {
   Object.entries(sumsByCategory).forEach(([key, total]) => {
     const cat = categoryMap[key];
     const label = cat ? cat.name : key;
-    const color = cat ? cat.color : '#a7a9a9';
+    const color = cat ? cat.color : '#ffffff';
 
     labels.push(label);
     values.push(total);
