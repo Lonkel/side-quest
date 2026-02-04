@@ -1,6 +1,9 @@
 // report.js
 
 const reportId = new URLSearchParams(window.location.search).get('report_id');
+const now = new Date();
+const currentYear = String(now.getFullYear());
+const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
 
 if (!reportId) {
   alert('Kein Bericht ausgewählt. Bitte über die Startseite öffnen.');
@@ -14,8 +17,8 @@ let expenses = [];
 let isLoading = false;
 let editingId = null;
 let draggedRow = null;
-let selectedYear = '2026';
-let selectedMonth = '01';
+let selectedYear = currentYear;
+let selectedMonth = currentMonth;
 let selectedContent = 'expenses';
 let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
