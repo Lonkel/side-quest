@@ -4,10 +4,8 @@ const reportId = new URLSearchParams(window.location.search).get('report_id');
 
 if (!reportId) {
   alert('Kein Bericht ausgewählt. Bitte über die Startseite öffnen.');
-  window.location.href = 'index.html';
+  window.location.href = '/index.html';
 }
-
-console.log('DEBUG budget.js reportId:', reportId);
 
 let budgets = [];
 let isLoading = false;
@@ -19,32 +17,40 @@ const monthNames = {
   '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Dezember'
 };
 
-// ===== DOM READY =====
+window.addEventListener('DOMContentLoaded', () => {
+  // Hard fail, falls supabase.js kein "db" bereitstellt
+  if (typeof db === 'undefined') {
+    alert('Supabase ist nicht initialisiert (db ist undefined). Prüfe supabase.js Einbindung.');
+    return;
+  }
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('DEBUG DOM ready');
-
+  // Defaults: aktueller Monat/Jahr
   const now = new Date();
-  document.getElementById('budgetYear').value = now.getFullYear();
-  document.getElementById('budgetMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+  setYearMonth(String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, '0'));
 
-  document.getElementById('addBudgetBtn').onclick = function() { addBudget(); };
-  document.getElementById('resetBtn').onclick = function() { clearForm(); };
-  document.getElementById('saveBtn').onclick = function() { saveEdit(); };
-  document.getElementById('cancelBtn').onclick = function() { closeModal(); };
-  document.getElementById('backBtn').onclick = function() {
-    console.log('DEBUG backBtn clicked');
-    window.location.href = 'report.html?report_id=' + reportId;
-  };
+  // Buttons wie bei categories.js: addEventListener + href
+  document.getElementById('backBtn').addEventListener('click', () => {
+    window.location.href = `/report.html?report_id=${reportId}`;
+  });
+
+  document.getElementById('addBudgetBtn').addEventListener('click', addBudget);
+  document.getElementById('resetBtn').addEventListener('click', clearForm);
+
+  document.getElementById('saveBtn').addEventListener('click', saveEdit);
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
 
   loadBudgets();
 });
 
-// ===== LOAD BUDGETS =====
+function setYearMonth(year, month) {
+  const yearEl = document.getElementById('budgetYear');
+  const monthEl = document.getElementById('budgetMonth');
+  if (yearEl) yearEl.value = year;
+  if (monthEl) monthEl.value = month;
+}
 
 async function loadBudgets() {
   isLoading = true;
-
   try {
     const { data, error } = await db
       .from('budget_history')
@@ -52,180 +58,67 @@ async function loadBudgets() {
       .eq('report_id', reportId)
       .order('year_month', { ascending: false });
 
-    if (error) {
-      console.error('Fehler beim Laden:', error);
-      alert('Fehler beim Laden: ' + error.message);
-      isLoading = false;
-      return;
-    }
+    if (error) throw error;
 
-    console.log('DEBUG loadBudgets:', data);
     budgets = data || [];
     renderTable();
-    isLoading = false;
   } catch (err) {
-    console.error('Fehler beim Laden (catch):', err);
-    alert('Fehler beim Laden: ' + err.message);
+    console.error('Fehler beim Laden der Budgets:', err);
+    alert('Fehler beim Laden der Budgets: ' + (err?.message || err));
+  } finally {
     isLoading = false;
   }
 }
 
-// ===== ADD BUDGET =====
-
-async function addBudget() {
-  console.log('DEBUG addBudget called');
+async function addBudget(event) {
+  if (event) event.preventDefault();
+  if (isLoading) return;
 
   const year = document.getElementById('budgetYear').value;
   const month = document.getElementById('budgetMonth').value;
   const amountRaw = document.getElementById('budgetAmount').value;
   const amount = parseFloat(amountRaw);
 
-  console.log('DEBUG year:', year, 'month:', month, 'amount:', amount);
-
-  if (!year || !month || amountRaw === '' || isNaN(amount) || amount < 0) {
-    alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+  if (!year || !month || amountRaw === '' || Number.isNaN(amount) || amount < 0) {
+    alert('Bitte Jahr, Monat und ein gültiges Budget eingeben.');
     return;
   }
 
   const yearMonth = `${year}-${month}`;
-  const exists = budgets.find(b => b.year_month === yearMonth);
 
+  const exists = budgets.some(b => b.year_month === yearMonth);
   if (exists) {
-    if (!confirm('Für diesen Monat existiert bereits ein Budget. Überschreiben?')) {
-      return;
-    }
-  }
-
-  if (isLoading) {
-    console.log('DEBUG isLoading true, aborted');
-    return;
+    const ok = confirm('Für diesen Monat existiert bereits ein Budget. Überschreiben?');
+    if (!ok) return;
   }
 
   isLoading = true;
   document.getElementById('addBudgetBtn').disabled = true;
 
-  const row = {
-    report_id: reportId,
-    year_month: yearMonth,
-    budget_amount: amount
-  };
-
-  console.log('DEBUG addBudget row:', row);
-
   try {
-    const { data, error } = await db
-      .from('budget_history')
-      .upsert(row, { onConflict: 'report_id,year_month' })
-      .select('*');
+    const row = {
+      report_id: reportId,
+      year_month: yearMonth,
+      budget_amount: amount
+    };
 
-    if (error) {
-      console.error('Fehler beim Speichern:', error);
-      alert('Fehler beim Speichern: ' + error.message);
-      isLoading = false;
-      document.getElementById('addBudgetBtn').disabled = false;
-      return;
-    }
-
-    console.log('DEBUG addBudget result:', data);
-    clearForm();
-    await loadBudgets();
-    document.getElementById('addBudgetBtn').disabled = false;
-  } catch (err) {
-    console.error('Fehler beim Speichern (catch):', err);
-    alert('Fehler beim Speichern: ' + err.message);
-    isLoading = false;
-    document.getElementById('addBudgetBtn').disabled = false;
-  }
-}
-
-// ===== EDIT BUDGET =====
-
-function openEditModal(yearMonth) {
-  const budget = budgets.find(b => b.year_month === yearMonth);
-  if (!budget) return;
-
-  editingYearMonth = yearMonth;
-  document.getElementById('editBudgetAmount').value = budget.budget_amount;
-  document.getElementById('editModal').classList.add('active');
-}
-
-function closeModal() {
-  document.getElementById('editModal').classList.remove('active');
-  editingYearMonth = null;
-}
-
-async function saveEdit() {
-  if (!editingYearMonth) return;
-
-  const amount = parseFloat(document.getElementById('editBudgetAmount').value);
-
-  if (isNaN(amount) || amount < 0) {
-    alert('Bitte einen gültigen Betrag eingeben.');
-    return;
-  }
-
-  if (isLoading) return;
-  isLoading = true;
-
-  console.log('DEBUG saveEdit yearMonth:', editingYearMonth, 'amount:', amount);
-
-  try {
-    const { data, error } = await db
-      .from('budget_history')
-      .update({ budget_amount: amount })
-      .eq('report_id', reportId)
-      .eq('year_month', editingYearMonth)
-      .select('*');
-
-    if (error) {
-      console.error('Fehler beim Aktualisieren:', error);
-      alert('Fehler beim Aktualisieren: ' + error.message);
-      isLoading = false;
-      return;
-    }
-
-    console.log('DEBUG saveEdit updated:', data);
-    closeModal();
-    await loadBudgets();
-  } catch (err) {
-    console.error('Fehler beim Aktualisieren (catch):', err);
-    alert('Fehler beim Aktualisieren: ' + err.message);
-    isLoading = false;
-  }
-}
-
-// ===== DELETE BUDGET =====
-
-async function deleteBudget(yearMonth) {
-  if (isLoading) return;
-  if (!confirm('Wirklich löschen?')) return;
-
-  isLoading = true;
-  console.log('DEBUG deleteBudget:', yearMonth);
-
-  try {
+    // Upsert: Monat anlegen oder überschreiben
     const { error } = await db
       .from('budget_history')
-      .delete()
-      .eq('report_id', reportId)
-      .eq('year_month', yearMonth);
+      .upsert(row, { onConflict: 'report_id,year_month' });
 
-    if (error) {
-      console.error('Fehler beim Löschen:', error);
-      alert('Fehler beim Löschen: ' + error.message);
-      isLoading = false;
-      return;
-    }
+    if (error) throw error;
 
+    clearForm();
     await loadBudgets();
   } catch (err) {
-    console.error('Fehler beim Löschen (catch):', err);
-    alert('Fehler beim Löschen: ' + err.message);
+    console.error('Fehler beim Speichern des Budgets:', err);
+    alert('Fehler beim Speichern des Budgets: ' + (err?.message || err));
+  } finally {
     isLoading = false;
+    document.getElementById('addBudgetBtn').disabled = false;
   }
 }
-
-// ===== RENDER TABLE =====
 
 function renderTable() {
   const tbody = document.getElementById('budgetTable');
@@ -235,43 +128,109 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = budgets.map(budget => {
-    const parts = budget.year_month.split('-');
-    const year = parts[0];
-    const month = parts[1];
+  tbody.innerHTML = budgets.map(b => {
+    const [year, month] = String(b.year_month).split('-');
     const monthName = monthNames[month] || month;
 
     return `
       <tr>
         <td>${year}</td>
         <td>${monthName}</td>
-        <td class="text-right"><strong>${formatCurrency(budget.budget_amount)}</strong></td>
+        <td class="text-right"><strong>${formatCurrency(b.budget_amount || 0)}</strong></td>
         <td class="text-right action-buttons">
-          <button class="icon-btn icon-delete" onclick="deleteBudget('${budget.year_month}')" title="Löschen">✕</button>
-          <button class="icon-btn icon-edit" onclick="openEditModal('${budget.year_month}')" title="Bearbeiten">✎</button>
+          <button class="icon-btn icon-edit" onclick="openEditModal('${b.year_month}')" title="Bearbeiten" type="button">✎</button>
+          <button class="icon-btn icon-delete" onclick="deleteBudget('${b.year_month}')" title="Löschen" type="button">✕</button>
         </td>
       </tr>
     `;
   }).join('');
 }
 
-// ===== HELPERS =====
+function openEditModal(yearMonth) {
+  const found = budgets.find(b => b.year_month === yearMonth);
+  if (!found) return;
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(value);
+  editingYearMonth = yearMonth;
+  document.getElementById('editBudgetAmount').value = found.budget_amount ?? 0;
+  document.getElementById('editModal').classList.add('active');
 }
 
-function clearForm() {
+function closeModal() {
+  document.getElementById('editModal').classList.remove('active');
+  editingYearMonth = null;
+}
+
+async function saveEdit(event) {
+  if (event) event.preventDefault();
+  if (!editingYearMonth || isLoading) return;
+
+  const amountRaw = document.getElementById('editBudgetAmount').value;
+  const amount = parseFloat(amountRaw);
+
+  if (amountRaw === '' || Number.isNaN(amount) || amount < 0) {
+    alert('Bitte einen gültigen Betrag eingeben.');
+    return;
+  }
+
+  isLoading = true;
+
+  try {
+    const { error } = await db
+      .from('budget_history')
+      .update({ budget_amount: amount })
+      .eq('report_id', reportId)
+      .eq('year_month', editingYearMonth);
+
+    if (error) throw error;
+
+    closeModal();
+    await loadBudgets();
+  } catch (err) {
+    console.error('Fehler beim Aktualisieren:', err);
+    alert('Fehler beim Aktualisieren: ' + (err?.message || err));
+  } finally {
+    isLoading = false;
+  }
+}
+
+async function deleteBudget(yearMonth) {
+  if (isLoading) return;
+
+  const ok = confirm(`Budget ${yearMonth} wirklich löschen?`);
+  if (!ok) return;
+
+  isLoading = true;
+
+  try {
+    const { error } = await db
+      .from('budget_history')
+      .delete()
+      .eq('report_id', reportId)
+      .eq('year_month', yearMonth);
+
+    if (error) throw error;
+
+    await loadBudgets();
+  } catch (err) {
+    console.error('Fehler beim Löschen:', err);
+    alert('Fehler beim Löschen: ' + (err?.message || err));
+  } finally {
+    isLoading = false;
+  }
+}
+
+function clearForm(event) {
+  if (event) event.preventDefault();
+
   const now = new Date();
-  document.getElementById('budgetYear').value = now.getFullYear();
-  document.getElementById('budgetMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+  setYearMonth(String(now.getFullYear()), String(now.getMonth() + 1).padStart(2, '0'));
   document.getElementById('budgetAmount').value = '';
 }
 
-// ===== GLOBAL =====
+function formatCurrency(value) {
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
+}
 
-window.deleteBudget = deleteBudget;
+// Für inline onclick in der Tabelle
 window.openEditModal = openEditModal;
+window.deleteBudget = deleteBudget;
