@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Verwaltung</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24);">
+      <h1 style="margin: 0;">💰 Budget Verwaltung</h1>
+      <button class="btn-secondary" id="backBtn">← Zurück</button>
+    </div>
+
+    <div class="form-section">
+      <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Neues Budget hinzufügen</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="budgetYear">Jahr</label>
+          <select id="budgetYear">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="budgetMonth">Monat</label>
+          <select id="budgetMonth">
+            <option value="01">Januar</option>
+            <option value="02">Februar</option>
+            <option value="03">März</option>
+            <option value="04">April</option>
+            <option value="05">Mai</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Dezember</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="budgetAmount">Budget (€)</label>
+          <input type="number" id="budgetAmount" step="0.01" min="0" placeholder="0,00" />
+        </div>
+      </div>
+      <div class="button-group">
+        <button class="btn-primary" id="addBudgetBtn">Hinzufügen</button>
+        <button class="btn-secondary" id="resetBtn">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <h2 style="margin: 0 0 var(--space-16) 0; font-size: 18px;">Budget-Übersicht</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Jahr</th>
+            <th>Monat</th>
+            <th class="text-right">Budget</th>
+            <th class="text-right">Aktion</th>
+          </tr>
+        </thead>
+        <tbody id="budgetTable">
+          <tr class="empty-state">
+            <td colspan="4">Keine Budgets vorhanden. Füge dein erstes Budget hinzu!</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Budget bearbeiten</div>
+      <div class="form-group">
+        <label for="editBudgetAmount">Budget (€)</label>
+        <input type="number" id="editBudgetAmount" step="0.01" min="0" placeholder="0,00" />
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-primary" id="saveBtn">Speichern</button>
+        <button class="btn-secondary" id="cancelBtn">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="budget.js"></script>
+</body>
+</html>
