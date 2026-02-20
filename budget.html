@@ -10,7 +10,8 @@
   <div class="container">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-24);">
       <h1 style="margin:0;">Budget verwalten</h1>
-      <button class="btn-secondary" id="backBtn" type="button">Bericht</button>
+      <button class="btn-secondary" id="backBtn" type="button"
+      onclick="window.location.href='report.html?report_id=' + new URLSearchParams(window.location.search).get('report_id')">Bericht</button>
     </div>
 
     <div class="form-section">
