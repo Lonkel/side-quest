@@ -53,12 +53,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('editTitleBtn').addEventListener('click', openEditTitleModal);
   document.getElementById('saveTitleBtn').addEventListener('click', saveTitle);
   document.getElementById('cancelTitleBtn').addEventListener('click', closeEditTitleModal);
-
-  // Budget Button
-  document.getElementById('budgetBtn').addEventListener('click', openBudgetModal);
-  document.getElementById('saveBudgetBtn').addEventListener('click', saveBudget);
-  document.getElementById('cancelBudgetBtn').addEventListener('click', closeBudgetModal);
-
+  
   // Year Tab Listeners
   document.querySelectorAll('.year-tab').forEach(btn => {
     btn.addEventListener('click', switchYear);
@@ -77,6 +72,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // Categories Button
   document.getElementById('categoryBtn').addEventListener('click', () => {
     window.location.href = `/categories.html?report_id=${reportId}`;
+  });
+  
+  // Budget Button
+  document.getElementById('budgetBtn').addEventListener('click', () => {
+    window.location.href = `/budget.html?report_id=${reportId}`;
   });
 
   loadReport();
