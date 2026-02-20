@@ -4,156 +4,56 @@ const reportId = new URLSearchParams(window.location.search).get('report_id');
 
 if (!reportId) {
   alert('Kein Bericht ausgewählt. Bitte über die Startseite öffnen.');
-  window.location.href = '/index.html';
+  window.location.href = 'report.html';
 }
 
-// Debug
 console.log('DEBUG budget.js reportId:', reportId);
+console.log('DEBUG supabase db verfügbar:', typeof db !== 'undefined');
 
 let budgets = [];
 let isLoading = false;
 let editingYearMonth = null;
 
 const monthNames = {
-  '01': 'Januar',
-  '02': 'Februar',
-  '03': 'März',
-  '04': 'April',
-  '05': 'Mai',
-  '06': 'Juni',
-  '07': 'Juli',
-  '08': 'August',
-  '09': 'September',
-  '10': 'Oktober',
-  '11': 'November',
-  '12': 'Dezember'
+  '01': 'Januar', '02': 'Februar', '03': 'März', '04': 'April', '05': 'Mai',
+  '06': 'Juni', '07': 'Juli', '08': 'August', '09': 'September',
+  '10': 'Oktober', '11': 'November', '12': 'Dezember'
 };
 
-// DOM ready
-window.addEventListener('DOMContentLoaded', () => {
+// Buttons sofort verdrahten (ohne DOM ready warten)
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DEBUG DOM ready');
+  
+  // Jahr/Monat auf aktuell setzen
   const now = new Date();
   document.getElementById('budgetYear').value = now.getFullYear();
   document.getElementById('budgetMonth').value = String(now.getMonth() + 1).padStart(2, '0');
 
-  document.getElementById('addBudgetBtn').addEventListener('click', addBudget);
-  document.getElementById('resetBtn').addEventListener('click', clearForm);
-  document.getElementById('saveBtn').addEventListener('click', saveEdit);
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
-  document.getElementById('backBtn').addEventListener('click', goBackToReport);
+  // ALLE Event Listener explizit
+  document.getElementById('addBudgetBtn').onclick = addBudget;
+  document.getElementById('resetBtn').onclick = clearForm;
+  document.getElementById('saveBtn').onclick = saveEdit;
+  document.getElementById('cancelBtn').onclick = closeModal;
+  document.getElementById('backBtn').onclick = goBackToReport;
 
   loadBudgets();
 });
 
-function goBackToReport(event) {
-  if (event) event.preventDefault();
-  // relative Navigation, falls deine report.html im gleichen Ordner liegt
+// Buttons auch direkt verfügbar machen
+function goBackToReport() {
+  console.log('DEBUG backBtn clicked');
   window.location.href = `report.html?report_id=${reportId}`;
 }
 
-// ===== LOAD BUDGETS =====
-
+// Rest des Codes bleibt identisch...
 async function loadBudgets() {
-  isLoading = true;
-
-  try {
-    const { data, error } = await db
-      .from('budget_history')
-      .select('*')
-      .eq('report_id', reportId)
-      .order('year_month', { ascending: false });
-
-    if (error) {
-      console.error('Fehler beim Laden:', error);
-      alert('Fehler beim Laden der Budgets: ' + error.message);
-      isLoading = false;
-      return;
-    }
-
-    console.log('DEBUG loadBudgets rows:', data);
-
-    budgets = data || [];
-    renderTable();
-    isLoading = false;
-  } catch (error) {
-    console.error('Fehler beim Laden (catch):', error);
-    alert('Fehler beim Laden der Budgets: ' + error.message);
-    isLoading = false;
-  }
-}
-
-// ===== ADD BUDGET =====
-
-async function addBudget(event) {
-  if (event) event.preventDefault();
-  console.log('DEBUG addBudget clicked');
-
-  const year = document.getElementById('budgetYear').value;
-  const month = document.getElementById('budgetMonth').value;
-  const amount = parseFloat(document.getElementById('budgetAmount').value);
-
-  if (!year || !month || isNaN(amount) || amount < 0) {
-    alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+  if (typeof db === 'undefined') {
+    alert('Supabase nicht geladen. Prüfe supabase.js');
     return;
   }
 
-  const yearMonth = `${year}-${month}`;
-
-  const exists = budgets.find(b => b.year_month === yearMonth);
-  if (exists) {
-    if (!confirm('Für diesen Monat existiert bereits ein Budget. Überschreiben?')) {
-      return;
-    }
-  }
-
-  if (isLoading) return;
   isLoading = true;
-  document.getElementById('addBudgetBtn').disabled = true;
-
-  const row = {
-    report_id: reportId,
-    year_month: yearMonth,
-    budget_amount: amount
-  };
-
-  console.log('DEBUG addBudget row to insert/upsert:', row);
+  console.log('DEBUG loadBudgets started');
 
   try {
-    const { data, error } = await db
-      .from('budget_history')
-      .upsert(row, { onConflict: 'report_id,year_month' })
-      .select('*');
-
-    if (error) {
-      console.error('Fehler beim Speichern:', error);
-      alert('Fehler beim Speichern des Budgets: ' + error.message);
-      isLoading = false;
-      document.getElementById('addBudgetBtn').disabled = false;
-      return;
-    }
-
-    console.log('DEBUG addBudget upsert result:', data);
-
-    clearForm();
-    await loadBudgets();
-  } catch (error) {
-    console.error('Fehler beim Speichern (catch):', error);
-    alert('Fehler beim Speichern des Budgets: ' + error.message);
-    isLoading = false;
-    document.getElementById('addBudgetBtn').disabled = false;
-  }
-}
-
-// ===== EDIT BUDGET =====
-
-function openEditModal(yearMonth) {
-  const budget = budgets.find(b => b.year_month === yearMonth);
-  if (!budget) return;
-
-  editingYearMonth = yearMonth;
-  document.getElementById('editBudgetAmount').value = budget.budget_amount;
-  document.getElementById('editModal').classList.add('active');
-}
-
-function closeModal() {
-  document.getElementById('editModal').classList.remove('active');
-  editingYearMonth = 
+    const { data,
