@@ -798,6 +798,7 @@ function updateSummary() {
     document.getElementById('totalMonth').textContent = formatCurrency(0);
     document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(0);
     document.getElementById('budgetMonth').textContent = formatCurrency(0);
+    document.getElementById('remainingBudget').textContent = formatCurrency(0);
     return;
   }
 
@@ -814,9 +815,19 @@ function updateSummary() {
 
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
 
+  const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
+
   document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
   document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(monthExpensesWithoutFixedEtf);
   document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
+
+  const remainingEl = document.getElementById('remainingBudget');
+  remainingEl.textContent = formatCurrency(remainingBudget);
+  if (remainingBudget < 0) {
+    remainingEl.style.color = '#ff4757';  // rot
+  } else {
+    remainingEl.style.color = '#2ed573';  // grün
+  }
 }
 
 // ===== GLOBAL FUNCTIONS =====
