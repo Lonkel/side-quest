@@ -819,7 +819,7 @@ function updateSummary() {
 
   document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
   document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(monthExpensesWithoutFixedEtf);
-  document.getElementById('budgetMonth').textContent = formatCurrency(monthlyBudget);
+  document.getElementById('budgetMonth').textContent = formatCurrency(remainingBudget);
 
   const remainingEl = document.getElementById('remainingBudget');
   remainingEl.textContent = formatCurrency(remainingBudget);
