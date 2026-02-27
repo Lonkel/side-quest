@@ -75,15 +75,8 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   
   // Budget Button
-  document.getEventListener('click', '#budgetBtn', async () => {
-  window.location.href = `/budget.html?report_id=${reportId}`;
-  });
-
-  window.addEventListener('pageshow', async () => {
-    if (performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
-      await loadBudgetHistory();  // Neu laden
-      updateSummary();
-    }
+  document.getElementById('budgetBtn').addEventListener('click', () => {
+    window.location.href = `/budget.html?report_id=${reportId}`;
   });
 
   loadReport();
