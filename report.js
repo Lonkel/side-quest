@@ -427,50 +427,54 @@ function getFilteredExpenses() {
 
 async function addExpense(event) {
   event.preventDefault();
-
+  
   const date = document.getElementById('date').value;
   const category = document.getElementById('category').value;
   const amount = parseFloat(document.getElementById('amount').value);
-
+  
   if (!date || !category || isNaN(amount) || amount <= 0) {
     alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
     return;
   }
-
+  
   if (isLoading) return;
   isLoading = true;
   document.getElementById('submitBtn').disabled = true;
 
-  const row = {
-    date,
-    category,
-    amount,
-    report_id: reportId
+  // OPTIMISTISCH: Sofort lokal hinzufügen (DB ID kommt später)
+  const optimisticExpense = {
+    id: `temp_${Date.now()}`,  // Temporäre ID
+    date, category, amount, report_id: reportId
   };
-
-  console.log('DEBUG addExpense row:', row);
+  
+  // Sofort UI updaten
+  expenses.unshift(optimisticExpense);  // Neueste oben
+  renderTable();
+  updateSummary();
+  clearForm();
 
   try {
-    const { data, error } = await db
-      .from('expenses')
-      .insert(row)
-      .select('*');
-
+    const { data, error } = await db.from('expenses').insert({ date, category, amount, report_id: reportId }).select();
+    
     if (error) {
-      console.error('Fehler beim Speichern:', error);
-      alert('Fehler beim Speichern: ' + error.message);
-      isLoading = false;
-      document.getElementById('submitBtn').disabled = false;
-      return;
+      // Undo bei Fehler
+      expenses = expenses.filter(e => e.id !== optimisticExpense.id);
+      renderTable();
+      updateSummary();
+      throw error;
     }
-
-    console.log('DEBUG addExpense inserted:', data);
-
-    clearForm();
-    await loadExpenses();
+    
+    // Ersetze Temp-ID durch echte DB-ID
+    const newExpense = data[0];
+    const tempIndex = expenses.findIndex(e => e.id === optimisticExpense.id);
+    if (tempIndex !== -1) {
+      expenses[tempIndex] = newExpense;
+      renderTable();  // Re-Render für echte ID (Edit/Delete)
+    }
+    
   } catch (error) {
-    console.error('Fehler beim Speichern (catch):', error);
     alert('Fehler beim Speichern: ' + error.message);
+  } finally {
     isLoading = false;
     document.getElementById('submitBtn').disabled = false;
   }
@@ -494,75 +498,74 @@ function closeModal() {
 
 async function saveEdit() {
   if (!editingId) return;
-
+  
   const date = document.getElementById('editDate').value;
   const category = document.getElementById('editCategory').value;
   const amount = parseFloat(document.getElementById('editAmount').value);
-
+  
   if (!date || !category || isNaN(amount) || amount <= 0) {
-    alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
+    alert('Bitte alle Felder ausfüllen.');
     return;
   }
-
+  
   if (isLoading) return;
   isLoading = true;
-
-  const row = { date, category, amount };
-  console.log('DEBUG saveEdit row:', row, 'id:', editingId);
-
-  try {
-    const { data, error } = await db
-      .from('expenses')
-      .update(row)
-      .eq('id', editingId)
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('Fehler beim Aktualisieren:', error);
-      alert('Fehler beim Aktualisieren: ' + error.message);
-      isLoading = false;
-      return;
-    }
-
-    console.log('DEBUG saveEdit updated:', data);
-
-    closeModal();
-    await loadExpenses();
-  } catch (error) {
-    console.error('Fehler beim Aktualisieren (catch):', error);
-    alert('Fehler beim Aktualisieren: ' + error.message);
-    isLoading = false;
-  }
-}
-
-async function deleteExpense(id) {
-  if (isLoading) return;
-  if (!confirm('Wirklich löschen?')) return;
-
-  isLoading = true;
-  console.log('DEBUG deleteExpense id:', id);
+  
+  const expenseIndex = expenses.findIndex(e => e.id === editingId);
+  if (expenseIndex === -1) return;
+  
+  // Sofort lokal updaten
+  expenses[expenseIndex] = { ...expenses[expenseIndex], date, category, amount };
+  renderTable();
+  updateSummary();
+  closeModal();
 
   try {
     const { error } = await db
       .from('expenses')
-      .delete()
-      .eq('id', id);
-
+      .update({ date, category, amount })
+      .eq('id', editingId);
+    
     if (error) {
-      console.error('Fehler beim Löschen:', error);
-      alert('Fehler beim Löschen: ' + error.message);
-      isLoading = false;
-      return;
+      // Undo
+      await loadExpenses();
+      throw error;
     }
-
-    await loadExpenses();
   } catch (error) {
-    console.error('Fehler beim Löschen (catch):', error);
-    alert('Fehler beim Löschen: ' + error.message);
+    alert('Fehler beim Aktualisieren: ' + error.message);
+    await loadExpenses();  // Voll-Reload bei Fehler
+  } finally {
     isLoading = false;
   }
 }
+
+
+async function deleteExpense(id) {
+  if (!confirm('Wirklich löschen?')) return;
+  if (isLoading) return;
+  
+  isLoading = true;
+  
+  // Sofort lokal löschen
+  const wasDeleted = expenses.find(e => e.id === id);
+  expenses = expenses.filter(e => e.id !== id);
+  renderTable();
+  updateSummary();
+
+  try {
+    const { error } = await db.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+  } catch (error) {
+    // Undo
+    if (wasDeleted) expenses.unshift(wasDeleted);
+    renderTable();
+    updateSummary();
+    alert('Fehler beim Löschen: ' + error.message);
+  } finally {
+    isLoading = false;
+  }
+}
+
 
 function clearForm(event) {
   if (event) event.preventDefault();
