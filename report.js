@@ -43,6 +43,8 @@ const monthNames = {
 
 document.addEventListener('DOMContentLoaded', initReport);
 
+// ===== ENTER-HANDLING =====
+
 function bindEnterToButton(inputSelectorOrList, buttonId) {
   const button = document.getElementById(buttonId);
   if (!button) return;
@@ -63,6 +65,8 @@ function bindEnterToButton(inputSelectorOrList, buttonId) {
   });
 }
 
+// ===== INIT =====
+
 function initReport() {
   // Formular-Felder
   const dateInput = document.getElementById('date');
@@ -73,33 +77,19 @@ function initReport() {
   const saveBtn = document.getElementById('saveBtn');
   const cancelBtn = document.getElementById('cancelBtn');
 
-  if (submitBtn) {
-    submitBtn.addEventListener('click', addExpense);
-  }
-  if (resetBtn) {
-    resetBtn.addEventListener('click', clearForm);
-  }
-  if (saveBtn) {
-    saveBtn.addEventListener('click', saveEdit);
-  }
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', closeModal);
-  }
+  if (submitBtn) submitBtn.addEventListener('click', addExpense);
+  if (resetBtn) resetBtn.addEventListener('click', clearForm);
+  if (saveBtn) saveBtn.addEventListener('click', saveEdit);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
   // Titel-Modal
   const editTitleBtn = document.getElementById('editTitleBtn');
   const saveTitleBtn = document.getElementById('saveTitleBtn');
   const cancelTitleBtn = document.getElementById('cancelTitleBtn');
 
-  if (editTitleBtn) {
-    editTitleBtn.addEventListener('click', openEditTitleModal);
-  }
-  if (saveTitleBtn) {
-    saveTitleBtn.addEventListener('click', saveTitle);
-  }
-  if (cancelTitleBtn) {
-    cancelTitleBtn.addEventListener('click', closeEditTitleModal);
-  }
+  if (editTitleBtn) editTitleBtn.addEventListener('click', openEditTitleModal);
+  if (saveTitleBtn) saveTitleBtn.addEventListener('click', saveTitle);
+  if (cancelTitleBtn) cancelTitleBtn.addEventListener('click', closeEditTitleModal);
 
   // Year Tabs
   document.querySelectorAll('.year-tab').forEach(btn => {
@@ -131,20 +121,14 @@ function initReport() {
     });
   }
 
-  // Budget-Modal Buttons (falls verwendet)
+  // Budget-Modal Buttons (optional)
   const budgetOpenBtn = document.getElementById('openBudgetModalBtn');
   const budgetSaveBtn = document.getElementById('saveBudgetBtn');
   const budgetCancelBtn = document.getElementById('cancelBudgetBtn');
 
-  if (budgetOpenBtn) {
-    budgetOpenBtn.addEventListener('click', openBudgetModal);
-  }
-  if (budgetSaveBtn) {
-    budgetSaveBtn.addEventListener('click', saveBudget);
-  }
-  if (budgetCancelBtn) {
-    budgetCancelBtn.addEventListener('click', closeBudgetModal);
-  }
+  if (budgetOpenBtn) budgetOpenBtn.addEventListener('click', openBudgetModal);
+  if (budgetSaveBtn) budgetSaveBtn.addEventListener('click', saveBudget);
+  if (budgetCancelBtn) budgetCancelBtn.addEventListener('click', closeBudgetModal);
 
   // Event Delegation für Edit/Delete in der Ausgaben-Tabelle
   const expenseTableBody = document.getElementById('expenseTable');
@@ -152,20 +136,12 @@ function initReport() {
     expenseTableBody.addEventListener('click', handleExpenseTableClick);
   }
 
-  // --- Enter-Handling ---
-
-  // Neue Ausgabe hinzufügen: Enter in einem der drei Felder → "Hinzufügen"
+  // Enter-Handling
   bindEnterToButton('#date, #category, #amount', 'submitBtn');
-
-  // Ausgabe bearbeiten: Enter in einem der drei Edit-Felder → "Speichern"
   bindEnterToButton('#editDate, #editCategory, #editAmount', 'saveBtn');
-
-  // Titel bearbeiten: Enter im Titel-Input → "Speichern"
   bindEnterToButton('#editTitleInput', 'saveTitleBtn');
-
-  // Budget-Modal (falls im Report): Enter im Budget-Feld → "Speichern"
   bindEnterToButton('#budgetInput', 'saveBudgetBtn');
-  
+
   loadReport();
   loadBudgetHistory();
   loadCategories();
@@ -622,13 +598,11 @@ function closeModal() {
 async function saveEdit(event) {
   if (event) event.preventDefault();
 
-  // Sicherstellen, dass eine Ausgabe gewählt ist
   if (editingId == null) {
     alert('Fehler: Keine Ausgabe zum Bearbeiten ausgewählt.');
     return;
   }
 
-  // ID in Zahl konvertieren, um "null" / "temp_..." etc. rauszufiltern
   const numericId = Number(editingId);
   if (!Number.isFinite(numericId)) {
     alert('Fehler: Ungültige Ausgaben-ID (kein numerischer Wert).');
@@ -662,7 +636,6 @@ async function saveEdit(event) {
 
   const prev = { ...expenses[idx] };
 
-  // Optimistisches Update im UI
   expenses[idx] = { ...prev, date, category, amount };
   renderTable();
   updateSummary();
@@ -674,7 +647,6 @@ async function saveEdit(event) {
       .eq('id', numericId);
 
     if (error) {
-      // Bei Fehler ursprünglichen Zustand wiederherstellen
       expenses[idx] = prev;
       renderTable();
       updateSummary();
@@ -682,11 +654,9 @@ async function saveEdit(event) {
     }
   } catch (error) {
     alert('Fehler beim Aktualisieren: ' + error.message);
-    // Voll-Reload der Daten zur Sicherheit
     await loadExpenses();
   } finally {
     isMutating = false;
-    // Modal IMMER schließen – egal ob Erfolg oder Fehler
     closeModal();
   }
 }
@@ -696,7 +666,6 @@ async function deleteExpense(id) {
   if (isMutating) return;
   isMutating = true;
 
-  // ID in Zahl konvertieren, um "null"/"temp_*" etc. zu vermeiden
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) {
     isMutating = false;
@@ -716,7 +685,6 @@ async function deleteExpense(id) {
       .eq('id', numericId);
 
     if (error) {
-      // Undo im Fehlerfall
       if (toDelete) expenses.unshift(toDelete);
       renderTable();
       updateSummary();
@@ -905,48 +873,50 @@ function renderCategoryPieChart() {
   }
 
   categoryPieChart = new Chart(ctx, {
-  type: 'pie',
-  data: {
-    labels,
-    datasets: [{
-      data: values,
-      backgroundColor: backgroundColors,  // <-- Fix: richtige Variable zuweisen
-      borderColor: '#1f2121',
-      borderWidth: 2
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: true,
-    layout: {
-      padding: 40
+    type: 'pie',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: backgroundColors,
+        borderColor: '#1f2121',
+        borderWidth: 2
+      }]
     },
-    plugins: {
-      legend: {
-        display: false
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      layout: {
+        padding: 40
       },
-      outlabels: {
-        text: (ctx) => {
-          const value = ctx.raw;
-          const label = ctx.chart.data.labels[ctx.dataIndex];
-          const percent = ((value / totalSum) * 100).toFixed(1);
-          return `${label} ${percent}%`;
+      plugins: {
+        legend: {
+          display: false
         },
-        color: '#ffffff',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        borderRadius: 4,
-        lineColor: '#cccccc',
-        lineWidth: 1.5,
-        stretch: 35,
-        font: {
-          resizable: true,
-          minSize: 10,
-          maxSize: 14
+        outlabels: {
+          text: (ctx) => {
+            const value = ctx.raw;
+            const label = ctx.chart.data.labels[ctx.dataIndex];
+            const percent = ((value / totalSum) * 100).toFixed(1);
+            return `${label} ${percent}%`;
+          },
+          color: '#ffffff',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          borderRadius: 4,
+          lineColor: '#cccccc',
+          lineWidth: 1.5,
+          stretch: 35,
+          font: {
+            resizable: true,
+            minSize: 10,
+            maxSize: 14
+          }
         }
       }
     }
-  }
+  });
 }
+
 // ===== SUMMARY =====
 
 function formatCurrency(value) {
@@ -961,12 +931,10 @@ function updateSummary() {
   const totalWithoutEl = document.getElementById('totalMonthWithoutFixedEtf');  // Ausgaben ohne Fix/ETF
   const remainingEl = document.getElementById('remainingBudget');               // Restliches Budget
 
-  // Wenn die KPI-Elemente nicht da sind, still aussteigen
   if (!totalMonthEl || !totalWithoutEl || !remainingEl) {
     return;
   }
 
-  // Übersicht / alle Jahre: KPIs auf 0
   if (selectedYear === 'all' || selectedMonth === 'overview') {
     totalMonthEl.textContent = formatCurrency(0);
     totalWithoutEl.textContent = formatCurrency(0);
@@ -989,7 +957,6 @@ function updateSummary() {
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
 
-  // KPIs setzen
   totalMonthEl.textContent = formatCurrency(monthExpenses);
   totalWithoutEl.textContent = formatCurrency(monthExpensesWithoutFixedEtf);
   remainingEl.textContent = formatCurrency(remainingBudget);
