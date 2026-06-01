@@ -10,11 +10,11 @@ if (!reportId) {
   window.location.href = '/index.html';
 }
 
-// Debug: Report ID prüfen
 console.log('DEBUG reportId:', reportId);
 
 let expenses = [];
-let isLoading = false;
+let isFetching = false;   // nur für loadExpenses
+let isMutating = false;   // für add/edit/delete
 let editingId = null;
 let draggedRow = null;
 let selectedYear = currentYear;
@@ -22,10 +22,10 @@ let selectedMonth = currentMonth;
 let selectedContent = 'expenses';
 let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
-let budgetHistoryMap = {}; // { "2026-01": 1000, "2026-02": 1000, ... }
-let categoryPieChart = null; // Chart.js instance für Kreisdiagramm
+let budgetHistoryMap = {}; // { "2026-01": 1000, ... }
+let categoryPieChart = null;
 
-// Monats-Namen für UI
+// Monatsnamen
 const monthNames = {
   '01': 'Januar',
   '02': 'Februar',
@@ -41,51 +41,104 @@ const monthNames = {
   '12': 'Dezember'
 };
 
-// DOM ready
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('date').valueAsDate = new Date();
-  document.getElementById('submitBtn').addEventListener('click', addExpense);
-  document.getElementById('resetBtn').addEventListener('click', clearForm);
-  document.getElementById('saveBtn').addEventListener('click', saveEdit);
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.addEventListener('DOMContentLoaded', initReport);
 
-  // Edit Title
-  document.getElementById('editTitleBtn').addEventListener('click', openEditTitleModal);
-  document.getElementById('saveTitleBtn').addEventListener('click', saveTitle);
-  document.getElementById('cancelTitleBtn').addEventListener('click', closeEditTitleModal);
-  
-  // Year Tab Listeners
+function initReport() {
+  // Formular-Felder
+  const dateInput = document.getElementById('date');
+  if (dateInput) dateInput.valueAsDate = new Date();
+
+  const submitBtn = document.getElementById('submitBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', addExpense);
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', clearForm);
+  }
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveEdit);
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', closeModal);
+  }
+
+  // Titel-Modal
+  const editTitleBtn = document.getElementById('editTitleBtn');
+  const saveTitleBtn = document.getElementById('saveTitleBtn');
+  const cancelTitleBtn = document.getElementById('cancelTitleBtn');
+
+  if (editTitleBtn) {
+    editTitleBtn.addEventListener('click', openEditTitleModal);
+  }
+  if (saveTitleBtn) {
+    saveTitleBtn.addEventListener('click', saveTitle);
+  }
+  if (cancelTitleBtn) {
+    cancelTitleBtn.addEventListener('click', closeEditTitleModal);
+  }
+
+  // Year Tabs
   document.querySelectorAll('.year-tab').forEach(btn => {
     btn.addEventListener('click', switchYear);
   });
 
-  // Month Tab Listeners
+  // Month Tabs
   document.querySelectorAll('.month-tab').forEach(btn => {
     btn.addEventListener('click', switchMonth);
   });
 
-  // Content Tab Listeners
+  // Content Tabs
   document.querySelectorAll('.content-tab').forEach(btn => {
     btn.addEventListener('click', switchContent);
   });
 
-  // Categories Button
-  document.getElementById('categoryBtn').addEventListener('click', () => {
-    window.location.href = `/categories.html?report_id=${reportId}`;
-  });
-  
-  // Budget Button
-  document.getElementById('budgetBtn').addEventListener('click', () => {
-    window.location.href = `/budget.html?report_id=${reportId}`;
-  });
+  // Navigation zu Kategorien / Budget
+  const categoryBtn = document.getElementById('categoryBtn');
+  const budgetBtn = document.getElementById('budgetBtn');
+
+  if (categoryBtn) {
+    categoryBtn.addEventListener('click', () => {
+      window.location.href = `/categories.html?report_id=${encodeURIComponent(reportId)}`;
+    });
+  }
+  if (budgetBtn) {
+    budgetBtn.addEventListener('click', () => {
+      window.location.href = `/budget.html?report_id=${encodeURIComponent(reportId)}`;
+    });
+  }
+
+  // Budget-Modal Buttons (falls verwendet)
+  const budgetOpenBtn = document.getElementById('openBudgetModalBtn');
+  const budgetSaveBtn = document.getElementById('saveBudgetBtn');
+  const budgetCancelBtn = document.getElementById('cancelBudgetBtn');
+
+  if (budgetOpenBtn) {
+    budgetOpenBtn.addEventListener('click', openBudgetModal);
+  }
+  if (budgetSaveBtn) {
+    budgetSaveBtn.addEventListener('click', saveBudget);
+  }
+  if (budgetCancelBtn) {
+    budgetCancelBtn.addEventListener('click', closeBudgetModal);
+  }
+
+  // Event Delegation für Edit/Delete in der Ausgaben-Tabelle
+  const expenseTableBody = document.getElementById('expenseTable');
+  if (expenseTableBody) {
+    expenseTableBody.addEventListener('click', handleExpenseTableClick);
+  }
 
   loadReport();
   loadBudgetHistory();
   loadCategories();
   loadExpenses();
-});
+}
 
-// ===== REPORT TITLE FUNCTIONS =====
+// ===== REPORT TITLE =====
 
 async function loadReport() {
   try {
@@ -104,7 +157,8 @@ async function loadReport() {
 
     if (data && data.name) {
       reportTitle = data.name;
-      document.getElementById('reportTitle').textContent = reportTitle;
+      const titleEl = document.getElementById('reportTitle');
+      if (titleEl) titleEl.textContent = reportTitle;
     }
   } catch (error) {
     console.error('Fehler beim Laden des Reports (catch):', error);
@@ -112,18 +166,25 @@ async function loadReport() {
 }
 
 function openEditTitleModal() {
-  document.getElementById('editTitleInput').value = reportTitle;
-  document.getElementById('editTitleModal').classList.add('active');
-  document.getElementById('editTitleInput').focus();
+  const input = document.getElementById('editTitleInput');
+  const modal = document.getElementById('editTitleModal');
+  if (!input || !modal) return;
+
+  input.value = reportTitle;
+  modal.classList.add('active');
+  input.focus();
 }
 
 function closeEditTitleModal() {
-  document.getElementById('editTitleModal').classList.remove('active');
+  const modal = document.getElementById('editTitleModal');
+  if (modal) modal.classList.remove('active');
 }
 
 async function saveTitle() {
-  const newTitle = document.getElementById('editTitleInput').value.trim();
+  const input = document.getElementById('editTitleInput');
+  if (!input) return;
 
+  const newTitle = input.value.trim();
   if (!newTitle) {
     alert('Bitte gib einen Titel ein.');
     return;
@@ -146,7 +207,8 @@ async function saveTitle() {
     console.log('DEBUG saveTitle updated:', data);
 
     reportTitle = newTitle;
-    document.getElementById('reportTitle').textContent = reportTitle;
+    const titleEl = document.getElementById('reportTitle');
+    if (titleEl) titleEl.textContent = reportTitle;
     closeEditTitleModal();
   } catch (error) {
     console.error('Fehler beim Speichern (catch):', error);
@@ -154,7 +216,7 @@ async function saveTitle() {
   }
 }
 
-// ===== BUDGET FUNCTIONS =====
+// ===== BUDGET =====
 
 async function loadBudgetHistory() {
   try {
@@ -190,22 +252,31 @@ function openBudgetModal() {
     return;
   }
 
-  const currentBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const monthName = monthNames[selectedMonth] || selectedMonth;
+  const currentBudget = getBudgetForMonth(selectedYear, selectedMonth);
 
-  document.getElementById('budgetModalMonth').textContent = `${monthName} ${selectedYear}`;
-  document.getElementById('budgetInput').value = currentBudget;
-  document.getElementById('budgetModal').classList.add('active');
-  document.getElementById('budgetInput').focus();
+  const labelEl = document.getElementById('budgetModalMonth');
+  const input = document.getElementById('budgetInput');
+  const modal = document.getElementById('budgetModal');
+
+  if (!labelEl || !input || !modal) return;
+
+  labelEl.textContent = `${monthName} ${selectedYear}`;
+  input.value = currentBudget;
+  modal.classList.add('active');
+  input.focus();
 }
 
 function closeBudgetModal() {
-  document.getElementById('budgetModal').classList.remove('active');
+  const modal = document.getElementById('budgetModal');
+  if (modal) modal.classList.remove('active');
 }
 
 async function saveBudget() {
-  const budgetAmount = parseFloat(document.getElementById('budgetInput').value);
+  const input = document.getElementById('budgetInput');
+  if (!input) return;
 
+  const budgetAmount = parseFloat(input.value);
   if (isNaN(budgetAmount) || budgetAmount < 0) {
     alert('Bitte geben Sie einen gültigen Betrag ein.');
     return;
@@ -240,7 +311,6 @@ async function saveBudget() {
     console.log('DEBUG saveBudget upsert result:', data);
 
     budgetHistoryMap[monthKey] = budgetAmount;
-
     updateSummary();
     closeBudgetModal();
   } catch (error) {
@@ -249,7 +319,7 @@ async function saveBudget() {
   }
 }
 
-// ===== CATEGORY FUNCTIONS =====
+// ===== KATEGORIEN =====
 
 async function loadCategories() {
   try {
@@ -277,15 +347,15 @@ async function loadCategories() {
 }
 
 function updateCategorySelects() {
-  const selects = ['category', 'editCategory'];
-  
-  selects.forEach(selectId => {
+  const ids = ['category', 'editCategory'];
+
+  ids.forEach(selectId => {
     const select = document.getElementById(selectId);
     if (!select) return;
 
     const defaultOption = select.querySelector('option[value=""]');
     select.innerHTML = '';
-    
+
     if (defaultOption) {
       select.appendChild(defaultOption);
     }
@@ -319,7 +389,7 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// ===== TAB SWITCHING FUNCTIONS =====
+// ===== TAB-WECHSEL =====
 
 function switchYear(e) {
   const year = e.target.dataset.year;
@@ -331,10 +401,10 @@ function switchYear(e) {
 
   const monthTabs = document.getElementById('monthTabs');
   if (year === 'all') {
-    monthTabs.style.display = 'none';
+    if (monthTabs) monthTabs.style.display = 'none';
     selectedMonth = 'overview';
   } else {
-    monthTabs.style.display = 'flex';
+    if (monthTabs) monthTabs.style.display = 'flex';
     const targetMonth = (year === currentYear) ? currentMonth : '01';
     selectedMonth = targetMonth;
 
@@ -370,19 +440,22 @@ function switchContent(e) {
   e.target.classList.add('active');
 
   document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
-  
+
   if (selectedContent === 'expenses') {
-    document.getElementById('expensesSection').classList.add('active');
+    const sec = document.getElementById('expensesSection');
+    if (sec) sec.classList.add('active');
   } else if (selectedContent === 'statistics') {
-    document.getElementById('statisticsSection').classList.add('active');
+    const sec = document.getElementById('statisticsSection');
+    if (sec) sec.classList.add('active');
     renderCategoryPieChart();
   }
 }
 
-// ===== EXPENSE LOADING =====
+// ===== EXPENSES LADEN =====
 
 async function loadExpenses() {
-  isLoading = true;
+  if (isFetching) return;
+  isFetching = true;
 
   try {
     const { data, error } = await db
@@ -393,7 +466,6 @@ async function loadExpenses() {
 
     if (error) {
       console.error('Fehler beim Laden:', error);
-      isLoading = false;
       return;
     }
 
@@ -402,10 +474,10 @@ async function loadExpenses() {
     expenses = data || [];
     renderTable();
     updateSummary();
-    isLoading = false;
   } catch (error) {
     console.error('Fehler beim Laden (catch):', error);
-    isLoading = false;
+  } finally {
+    isFetching = false;
   }
 }
 
@@ -420,102 +492,129 @@ function getFilteredExpenses() {
     filtered = filtered.filter(e => e.date.startsWith(`${selectedYear}-${selectedMonth}`));
   }
 
-  return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return filtered.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-// ===== EXPENSE CRUD OPERATIONS =====
+// ===== CRUD: ADD / EDIT / DELETE =====
 
 async function addExpense(event) {
-  event.preventDefault();
-  
-  const date = document.getElementById('date').value;
-  const category = document.getElementById('category').value;
-  const amount = parseFloat(document.getElementById('amount').value);
-  
+  if (event) event.preventDefault();
+
+  const dateInput = document.getElementById('date');
+  const categoryInput = document.getElementById('category');
+  const amountInput = document.getElementById('amount');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!dateInput || !categoryInput || !amountInput || !submitBtn) return;
+
+  const date = dateInput.value;
+  const category = categoryInput.value;
+  const amount = parseFloat(amountInput.value);
+
   if (!date || !category || isNaN(amount) || amount <= 0) {
     alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
     return;
   }
-  
-  if (isLoading) return;
-  isLoading = true;
-  document.getElementById('submitBtn').disabled = true;
 
-  // OPTIMISTISCH: Sofort lokal hinzufügen (DB ID kommt später)
+  if (isMutating) return;
+  isMutating = true;
+  submitBtn.disabled = true;
+
   const optimisticExpense = {
-    id: `temp_${Date.now()}`,  // Temporäre ID
-    date, category, amount, report_id: reportId
+    id: `temp_${Date.now()}`,
+    date,
+    category,
+    amount,
+    report_id: reportId
   };
-  
-  // Sofort UI updaten
-  expenses.unshift(optimisticExpense);  // Neueste oben
+
+  expenses.unshift(optimisticExpense);
   renderTable();
   updateSummary();
   clearForm();
 
   try {
-    const { data, error } = await db.from('expenses').insert({ date, category, amount, report_id: reportId }).select();
-    
+    const { data, error } = await db
+      .from('expenses')
+      .insert({ date, category, amount, report_id: reportId })
+      .select();
+
     if (error) {
-      // Undo bei Fehler
       expenses = expenses.filter(e => e.id !== optimisticExpense.id);
       renderTable();
       updateSummary();
       throw error;
     }
-    
-    // Ersetze Temp-ID durch echte DB-ID
+
     const newExpense = data[0];
-    const tempIndex = expenses.findIndex(e => e.id === optimisticExpense.id);
-    if (tempIndex !== -1) {
-      expenses[tempIndex] = newExpense;
-      renderTable();  // Re-Render für echte ID (Edit/Delete)
+    const idx = expenses.findIndex(e => e.id === optimisticExpense.id);
+    if (idx !== -1) {
+      expenses[idx] = newExpense;
+      renderTable();
     }
-    
   } catch (error) {
     alert('Fehler beim Speichern: ' + error.message);
   } finally {
-    isLoading = false;
-    document.getElementById('submitBtn').disabled = false;
+    isMutating = false;
+    submitBtn.disabled = false;
   }
 }
 
 function openEditModal(id) {
-  const expense = expenses.find(e => e.id === id);
+  const expense = expenses.find(e => String(e.id) === String(id));
   if (!expense) return;
 
-  editingId = id;
-  document.getElementById('editDate').value = expense.date;
-  document.getElementById('editCategory').value = expense.category;
-  document.getElementById('editAmount').value = expense.amount;
-  document.getElementById('editModal').classList.add('active');
+  editingId = expense.id;
+
+  const dateInput = document.getElementById('editDate');
+  const categoryInput = document.getElementById('editCategory');
+  const amountInput = document.getElementById('editAmount');
+  const modal = document.getElementById('editModal');
+
+  if (!dateInput || !categoryInput || !amountInput || !modal) return;
+
+  dateInput.value = expense.date;
+  categoryInput.value = expense.category;
+  amountInput.value = expense.amount;
+  modal.classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById('editModal').classList.remove('active');
+  const modal = document.getElementById('editModal');
+  if (modal) modal.classList.remove('active');
   editingId = null;
 }
 
-async function saveEdit() {
+async function saveEdit(event) {
+  if (event) event.preventDefault();
   if (!editingId) return;
-  
-  const date = document.getElementById('editDate').value;
-  const category = document.getElementById('editCategory').value;
-  const amount = parseFloat(document.getElementById('editAmount').value);
-  
+
+  const dateInput = document.getElementById('editDate');
+  const categoryInput = document.getElementById('editCategory');
+  const amountInput = document.getElementById('editAmount');
+
+  if (!dateInput || !categoryInput || !amountInput) return;
+
+  const date = dateInput.value;
+  const category = categoryInput.value;
+  const amount = parseFloat(amountInput.value);
+
   if (!date || !category || isNaN(amount) || amount <= 0) {
     alert('Bitte alle Felder ausfüllen.');
     return;
   }
-  
-  if (isLoading) return;
-  isLoading = true;
-  
-  const expenseIndex = expenses.findIndex(e => e.id === editingId);
-  if (expenseIndex === -1) return;
-  
-  // Sofort lokal updaten
-  expenses[expenseIndex] = { ...expenses[expenseIndex], date, category, amount };
+
+  if (isMutating) return;
+  isMutating = true;
+
+  const idx = expenses.findIndex(e => e.id === editingId);
+  if (idx === -1) {
+    isMutating = false;
+    return;
+  }
+
+  const prev = { ...expenses[idx] };
+  expenses[idx] = { ...prev, date, category, amount };
   renderTable();
   updateSummary();
   closeModal();
@@ -525,59 +624,68 @@ async function saveEdit() {
       .from('expenses')
       .update({ date, category, amount })
       .eq('id', editingId);
-    
+
     if (error) {
-      // Undo
-      await loadExpenses();
+      expenses[idx] = prev;
+      renderTable();
+      updateSummary();
       throw error;
     }
   } catch (error) {
     alert('Fehler beim Aktualisieren: ' + error.message);
-    await loadExpenses();  // Voll-Reload bei Fehler
+    await loadExpenses();
   } finally {
-    isLoading = false;
+    isMutating = false;
   }
 }
 
-
 async function deleteExpense(id) {
   if (!confirm('Wirklich löschen?')) return;
-  if (isLoading) return;
-  
-  isLoading = true;
-  
-  // Sofort lokal löschen
-  const wasDeleted = expenses.find(e => e.id === id);
-  expenses = expenses.filter(e => e.id !== id);
+  if (isMutating) return;
+  isMutating = true;
+
+  const toDelete = expenses.find(e => String(e.id) === String(id));
+  expenses = expenses.filter(e => String(e.id) !== String(id));
   renderTable();
   updateSummary();
 
   try {
-    const { error } = await db.from('expenses').delete().eq('id', id);
-    if (error) throw error;
+    const { error } = await db
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      if (toDelete) expenses.unshift(toDelete);
+      renderTable();
+      updateSummary();
+      throw error;
+    }
   } catch (error) {
-    // Undo
-    if (wasDeleted) expenses.unshift(wasDeleted);
-    renderTable();
-    updateSummary();
     alert('Fehler beim Löschen: ' + error.message);
   } finally {
-    isLoading = false;
+    isMutating = false;
   }
 }
 
-
 function clearForm(event) {
   if (event) event.preventDefault();
-  document.getElementById('date').valueAsDate = new Date();
-  document.getElementById('category').value = '';
-  document.getElementById('amount').value = '';
+
+  const dateInput = document.getElementById('date');
+  const categoryInput = document.getElementById('category');
+  const amountInput = document.getElementById('amount');
+
+  if (dateInput) dateInput.valueAsDate = new Date();
+  if (categoryInput) categoryInput.value = '';
+  if (amountInput) amountInput.value = '';
 }
 
-// ===== TABLE RENDERING & DRAG & DROP =====
+// ===== TABLE & DRAG&DROP =====
 
 function renderTable() {
   const tbody = document.getElementById('expenseTable');
+  if (!tbody) return;
+
   const filtered = getFilteredExpenses();
 
   if (!filtered || filtered.length === 0) {
@@ -596,7 +704,11 @@ function renderTable() {
         <td style="text-align: center; cursor: grab;">
           <span class="icon-drag">⋮⋮</span>
         </td>
-        <td>${new Date(expense.date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+        <td>${new Date(expense.date + 'T00:00:00').toLocaleDateString('de-DE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })}</td>
         <td>
           <span class="status-badge" style="background-color: ${bgColor}; color: ${color};">
             ${label}
@@ -604,8 +716,20 @@ function renderTable() {
         </td>
         <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
         <td class="text-right action-buttons">
-          <button class="icon-btn icon-delete" onclick="deleteExpense(${expense.id})" title="Löschen">✕</button>
-          <button class="icon-btn icon-edit" onclick="openEditModal(${expense.id})" title="Bearbeiten">✎</button>
+          <button
+            type="button"
+            class="icon-btn icon-delete"
+            data-action="delete"
+            data-id="${expense.id}"
+            title="Löschen"
+          >✕</button>
+          <button
+            type="button"
+            class="icon-btn icon-edit"
+            data-action="edit"
+            data-id="${expense.id}"
+            title="Bearbeiten"
+          >✎</button>
         </td>
       </tr>
     `;
@@ -618,6 +742,21 @@ function renderTable() {
     row.addEventListener('drop', handleDrop);
     row.addEventListener('dragend', handleDragEnd);
   });
+}
+
+function handleExpenseTableClick(e) {
+  const button = e.target.closest('button');
+  if (!button) return;
+
+  const action = button.dataset.action;
+  const id = button.dataset.id;
+  if (!action || !id) return;
+
+  if (action === 'delete') {
+    deleteExpense(id);
+  } else if (action === 'edit') {
+    openEditModal(id);
+  }
 }
 
 function handleDragStart(e) {
@@ -654,7 +793,7 @@ function handleDragEnd(e) {
   draggedRow = null;
 }
 
-// ===== PIE CHART RENDERING =====
+// ===== PIE CHART =====
 
 function renderCategoryPieChart() {
   const canvas = document.getElementById('categoryPieChart');
@@ -677,7 +816,6 @@ function renderCategoryPieChart() {
     return acc;
   }, {});
 
-  // KEINE Sortierung - natürliche Reihenfolge für bessere Verteilung
   const labels = [];
   const values = [];
   const backgroundColors = [];
@@ -708,7 +846,7 @@ function renderCategoryPieChart() {
   categoryPieChart = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         data: values,
         backgroundColor: backgroundColors,
@@ -729,7 +867,7 @@ function renderCategoryPieChart() {
         tooltip: {
           enabled: true,
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               const value = context.parsed;
               const percent = ((value / totalSum) * 100).toFixed(1);
               return `${context.label}: ${formatCurrency(value)} (${percent}%)`;
@@ -738,7 +876,7 @@ function renderCategoryPieChart() {
         },
         datalabels: {
           color: '#ffffff',
-          backgroundColor: 'transparent',  // kein Hintergrund
+          backgroundColor: 'transparent',
           borderWidth: 0,
           font: {
             size: 11,
@@ -749,30 +887,21 @@ function renderCategoryPieChart() {
             const label = context.chart.data.labels[context.dataIndex];
             return `${label}\n${percent}%`;
           },
-          // Dynamische Ausrichtung je nach Position
-          textAlign: function(context) {
+          textAlign: function (context) {
             const index = context.dataIndex;
-            const dataset = context.dataset;
             const meta = context.chart.getDatasetMeta(0);
             const element = meta.data[index];
-            
-            // Winkel des Segments bestimmen
             const angle = (element.startAngle + element.endAngle) / 2;
             const normalizedAngle = angle % (2 * Math.PI);
-            
-            // Rechte Hälfte: linksbündig, Linke Hälfte: rechtsbündig
             return normalizedAngle < Math.PI ? 'left' : 'right';
           },
           anchor: 'end',
-          align: function(context) {
+          align: function (context) {
             const index = context.dataIndex;
             const meta = context.chart.getDatasetMeta(0);
             const element = meta.data[index];
-            
             const angle = (element.startAngle + element.endAngle) / 2;
             const normalizedAngle = angle % (2 * Math.PI);
-            
-            // Labels weiter nach außen
             return normalizedAngle < Math.PI ? 'start' : 'end';
           },
           offset: 10,
@@ -786,8 +915,7 @@ function renderCategoryPieChart() {
   });
 }
 
-
-// ===== SUMMARY FUNCTIONS =====
+// ===== SUMMARY =====
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('de-DE', {
@@ -797,11 +925,19 @@ function formatCurrency(value) {
 }
 
 function updateSummary() {
+  const totalMonthEl = document.getElementById('totalMonth');
+  const totalWithoutEl = document.getElementById('totalMonthWithoutFixedEtf');
+  const budgetMonthEl = document.getElementById('budgetMonth');
+  const remainingEl = document.getElementById('remainingBudget');
+
+  if (!totalMonthEl || !totalWithoutEl || !budgetMonthEl || !remainingEl) return;
+
   if (selectedYear === 'all' || selectedMonth === 'overview') {
-    document.getElementById('totalMonth').textContent = formatCurrency(0);
-    document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(0);
-    document.getElementById('budgetMonth').textContent = formatCurrency(0);
-    document.getElementById('remainingBudget').textContent = formatCurrency(0);
+    totalMonthEl.textContent = formatCurrency(0);
+    totalWithoutEl.textContent = formatCurrency(0);
+    budgetMonthEl.textContent = formatCurrency(0);
+    remainingEl.textContent = formatCurrency(0);
+    remainingEl.style.color = '#f5f5f5';
     return;
   }
 
@@ -817,23 +953,11 @@ function updateSummary() {
     .reduce((sum, e) => sum + e.amount, 0);
 
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
-
   const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
 
-  document.getElementById('totalMonth').textContent = formatCurrency(monthExpenses);
-  document.getElementById('totalMonthWithoutFixedEtf').textContent = formatCurrency(monthExpensesWithoutFixedEtf);
-  document.getElementById('budgetMonth').textContent = formatCurrency(remainingBudget);
-
-  const remainingEl = document.getElementById('remainingBudget');
+  totalMonthEl.textContent = formatCurrency(monthExpenses);
+  totalWithoutEl.textContent = formatCurrency(monthExpensesWithoutFixedEtf);
+  budgetMonthEl.textContent = formatCurrency(remainingBudget);
   remainingEl.textContent = formatCurrency(remainingBudget);
-  if (remainingBudget < 0) {
-    remainingEl.style.color = '#ff4757';  // rot
-  } else {
-    remainingEl.style.color = '#2ed573';  // grün
-  }
+  remainingEl.style.color = remainingBudget < 0 ? '#ff4757' : '#2ed573';
 }
-
-// ===== GLOBAL FUNCTIONS =====
-
-window.deleteExpense = deleteExpense;
-window.openEditModal = openEditModal;
