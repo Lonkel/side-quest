@@ -906,7 +906,7 @@ function renderCategoryPieChart() {
           // ctx.percent kommt direkt vom Plugin, nicht selbst rechnen
           text: (ctx) => {
             const label = ctx.chart.data.labels[ctx.dataIndex];
-            const percent = (ctx.percent || 0).toFixed(1); // ctx.percent ist schon 0–100.[web:258]
+            const percent = ((ctx.percent || 0)*100).toFixed(1); // ctx.percent ist schon 0–100.[web:258]
             return `${label} ${percent}%`;
           },
           color: '#ffffff',
