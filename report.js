@@ -905,8 +905,7 @@ function renderCategoryPieChart() {
   }
 
   categoryPieChart = new Chart(ctx, {
-    // WICHTIG: spezieller Chart-Typ des Plugins
-    type: 'outlabeledPie',
+    type: 'pie',      // Standard-Pie-Typ,
     data: {
       labels,
       datasets: [{
