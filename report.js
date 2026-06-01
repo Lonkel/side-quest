@@ -587,7 +587,19 @@ function closeModal() {
 
 async function saveEdit(event) {
   if (event) event.preventDefault();
-  if (!editingId) return;
+
+  // Sicherstellen, dass eine Ausgabe gewählt ist
+  if (editingId == null) {
+    alert('Fehler: Keine Ausgabe zum Bearbeiten ausgewählt.');
+    return;
+  }
+
+  // ID in Zahl konvertieren, um "null" / "temp_..." etc. rauszufiltern
+  const numericId = Number(editingId);
+  if (!Number.isFinite(numericId)) {
+    alert('Fehler: Ungültige Ausgaben-ID (kein numerischer Wert).');
+    return;
+  }
 
   const dateInput = document.getElementById('editDate');
   const categoryInput = document.getElementById('editCategory');
@@ -607,25 +619,28 @@ async function saveEdit(event) {
   if (isMutating) return;
   isMutating = true;
 
-  const idx = expenses.findIndex(e => e.id === editingId);
+  const idx = expenses.findIndex(e => Number(e.id) === numericId);
   if (idx === -1) {
     isMutating = false;
+    alert('Fehler: Ausgabe nicht gefunden.');
     return;
   }
 
   const prev = { ...expenses[idx] };
+
+  // Optimistisches Update im UI
   expenses[idx] = { ...prev, date, category, amount };
   renderTable();
   updateSummary();
-  closeModal();
 
   try {
     const { error } = await db
       .from('expenses')
       .update({ date, category, amount })
-      .eq('id', editingId);
+      .eq('id', numericId);
 
     if (error) {
+      // Bei Fehler ursprünglichen Zustand wiederherstellen
       expenses[idx] = prev;
       renderTable();
       updateSummary();
@@ -633,9 +648,12 @@ async function saveEdit(event) {
     }
   } catch (error) {
     alert('Fehler beim Aktualisieren: ' + error.message);
+    // Voll-Reload der Daten zur Sicherheit
     await loadExpenses();
   } finally {
     isMutating = false;
+    // Modal IMMER schließen – egal ob Erfolg oder Fehler
+    closeModal();
   }
 }
 
@@ -644,8 +662,16 @@ async function deleteExpense(id) {
   if (isMutating) return;
   isMutating = true;
 
-  const toDelete = expenses.find(e => String(e.id) === String(id));
-  expenses = expenses.filter(e => String(e.id) !== String(id));
+  // ID in Zahl konvertieren, um "null"/"temp_*" etc. zu vermeiden
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) {
+    isMutating = false;
+    alert('Fehler: Ungültige Ausgaben-ID (kein numerischer Wert).');
+    return;
+  }
+
+  const toDelete = expenses.find(e => Number(e.id) === numericId);
+  expenses = expenses.filter(e => Number(e.id) !== numericId);
   renderTable();
   updateSummary();
 
@@ -653,9 +679,10 @@ async function deleteExpense(id) {
     const { error } = await db
       .from('expenses')
       .delete()
-      .eq('id', id);
+      .eq('id', numericId);
 
     if (error) {
+      // Undo im Fehlerfall
       if (toDelete) expenses.unshift(toDelete);
       renderTable();
       updateSummary();
