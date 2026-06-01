@@ -91,11 +91,6 @@ function initReport() {
   if (saveTitleBtn) saveTitleBtn.addEventListener('click', saveTitle);
   if (cancelTitleBtn) cancelTitleBtn.addEventListener('click', closeEditTitleModal);
 
-  // Year Tabs
-  document.querySelectorAll('.year-tab').forEach(btn => {
-    btn.addEventListener('click', switchYear);
-  });
-
   // Month Tabs
   document.querySelectorAll('.month-tab').forEach(btn => {
     btn.addEventListener('click', switchMonth);
@@ -399,6 +394,59 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// ===== YEAR TABS DYNAMISCH =====
+
+function renderYearTabs() {
+  const yearTabs = document.getElementById('yearTabs');
+  if (!yearTabs) return;
+
+  // Alle Jahre aus den Ausgaben sammeln
+  const yearsSet = new Set();
+
+  expenses.forEach(exp => {
+    if (exp.date && typeof exp.date === 'string' && exp.date.length >= 4) {
+      yearsSet.add(exp.date.slice(0, 4)); // "YYYY"
+    }
+  });
+
+  // Sicherstellen, dass das aktuelle Jahr immer dabei ist
+  yearsSet.add(currentYear);
+
+  // Sortiert (neueste zuerst)
+  const years = Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+
+  // Vorhandene Buttons komplett ersetzen
+  yearTabs.innerHTML = '';
+
+  // Jahr-Buttons erzeugen
+  years.forEach(year => {
+    const btn = document.createElement('button');
+    btn.className = 'year-tab';
+    btn.dataset.year = year;
+    btn.textContent = year;
+
+    if (year === selectedYear) {
+      btn.classList.add('active');
+    }
+
+    btn.addEventListener('click', switchYear);
+    yearTabs.appendChild(btn);
+  });
+
+  // "Gesamt"-Button anhängen
+  const allBtn = document.createElement('button');
+  allBtn.className = 'year-tab';
+  allBtn.dataset.year = 'all';
+  allBtn.textContent = 'Gesamt';
+
+  if (selectedYear === 'all') {
+    allBtn.classList.add('active');
+  }
+
+  allBtn.addEventListener('click', switchYear);
+  yearTabs.appendChild(allBtn);
+}
+
 // ===== TAB-WECHSEL =====
 
 function switchYear(e) {
@@ -484,6 +532,7 @@ async function loadExpenses() {
     expenses = data || [];
     renderTable();
     updateSummary();
+    renderYearTabs();
   } catch (error) {
     console.error('Fehler beim Laden (catch):', error);
   } finally {
@@ -561,6 +610,7 @@ async function addExpense(event) {
     if (idx !== -1) {
       expenses[idx] = newExpense;
       renderTable();
+      renderYearTabs();
     }
   } catch (error) {
     alert('Fehler beim Speichern: ' + error.message);
@@ -677,6 +727,7 @@ async function deleteExpense(id) {
   expenses = expenses.filter(e => Number(e.id) !== numericId);
   renderTable();
   updateSummary();
+  renderYearTabs();
 
   try {
     const { error } = await db
