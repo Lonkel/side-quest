@@ -24,6 +24,7 @@ let reportTitle = 'Ausgaben Tracker';
 let categoryMap = {};
 let budgetHistoryMap = {}; // { "2026-01": 1000, ... }
 let categoryPieChart = null;
+let netBudgetChart = null;
 
 // Monatsnamen
 const monthNames = {
@@ -317,6 +318,7 @@ async function saveBudget() {
 
     budgetHistoryMap[monthKey] = budgetAmount;
     updateSummary();
+    renderNetBudgetChart();
     closeBudgetModal();
   } catch (error) {
     console.error('Fehler beim Speichern des Budgets (catch):', error);
@@ -475,6 +477,7 @@ function switchYear(e) {
   updateSummary();
   if (selectedContent === 'statistics') {
     renderCategoryPieChart();
+    renderNetBudgetChart();
   }
 }
 
@@ -488,6 +491,7 @@ function switchMonth(e) {
   updateSummary();
   if (selectedContent === 'statistics') {
     renderCategoryPieChart();
+    renderNetBudgetChart();
   }
 }
 
@@ -506,6 +510,7 @@ function switchContent(e) {
     const sec = document.getElementById('statisticsSection');
     if (sec) sec.classList.add('active');
     renderCategoryPieChart();
+    renderNetBudgetChart();
   }
 }
 
@@ -533,6 +538,7 @@ async function loadExpenses() {
     renderTable();
     updateSummary();
     renderYearTabs();
+    renderNetBudgetChart();
   } catch (error) {
     console.error('Fehler beim Laden (catch):', error);
   } finally {
@@ -611,6 +617,7 @@ async function addExpense(event) {
       expenses[idx] = newExpense;
       renderTable();
       renderYearTabs();
+      renderNetBudgetChart();
     }
   } catch (error) {
     alert('Fehler beim Speichern: ' + error.message);
@@ -689,6 +696,7 @@ async function saveEdit(event) {
   expenses[idx] = { ...prev, date, category, amount };
   renderTable();
   updateSummary();
+  renderNetBudgetChart();
 
   try {
     const { error } = await db
@@ -700,6 +708,7 @@ async function saveEdit(event) {
       expenses[idx] = prev;
       renderTable();
       updateSummary();
+      renderNetBudgetChart();
       throw error;
     }
   } catch (error) {
@@ -728,6 +737,7 @@ async function deleteExpense(id) {
   renderTable();
   updateSummary();
   renderYearTabs();
+  renderNetBudgetChart();
 
   try {
     const { error } = await db
@@ -1020,4 +1030,116 @@ function updateSummary() {
   totalWithoutEl.textContent = formatCurrency(monthExpensesWithoutFixedEtf);
   remainingEl.textContent = formatCurrency(remainingBudget);
   remainingEl.style.color = remainingBudget < 0 ? '#ff4757' : '#2ed573';
+}
+
+// Liefert für das aktuelle selectedYear die Monats-Schritte fürs Waterfall-Chart
+function getNetBudgetSeriesForYear() {
+  const ymSet = new Set();
+
+  // Jahr-Monat Keys einsammeln, gefiltert nach selectedYear (oder alle)
+  expenses.forEach(exp => {
+    if (!exp.date || typeof exp.date !== 'string') return;
+    const [y, m] = exp.date.split('-');
+    if (!y || !m) return;
+
+    if (selectedYear === 'all' || y === selectedYear) {
+      ymSet.add(`${y}-${m}`);
+    }
+  });
+
+  const keys = Array.from(ymSet).sort(); // z.B. "2025-01", "2025-02", ...
+
+  const labels = [];
+  const data = [];
+  let cumulative = 0;
+
+  keys.forEach(key => {
+    const [y, m] = key.split('-');
+    const monthPrefix = `${y}-${m}`;
+
+    // variable Ausgaben (ohne fixed/etf)
+    const monthExpensesWithoutFixedEtf = expenses
+      .filter(e => e.date && e.date.startsWith(monthPrefix))
+      .filter(e => e.category !== 'fixed' && e.category !== 'etf')
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    // Budget aus budgetHistoryMap
+    const monthlyBudget = getBudgetForMonth(y, m);
+    const net = monthlyBudget - monthExpensesWithoutFixedEtf;
+
+    const start = cumulative;
+    cumulative += net;
+    data.push([start, cumulative]); // Floating Bar [von, bis][web:285]
+
+    const monthLabel = monthNames[m] || m;
+    labels.push(selectedYear === 'all' ? `${monthLabel.slice(0, 3)} ${y}` : monthLabel);
+  });
+
+  return { labels, data, total: cumulative };
+}
+
+function renderNetBudgetChart() {
+  const canvas = document.getElementById('netBudgetChart');
+  const valueEl = document.getElementById('netBudgetValue');
+  const section = document.getElementById('netBudgetSection');
+
+  if (!canvas || !valueEl || !section) return;
+
+  const { labels, data, total } = getNetBudgetSeriesForYear();
+
+  // Wenn es keine Daten gibt → alles zurücksetzen
+  if (!labels.length) {
+    if (netBudgetChart) {
+      netBudgetChart.destroy();
+      netBudgetChart = null;
+    }
+    valueEl.textContent = formatCurrency(0);
+    valueEl.style.color = '#f5f5f5';
+    return;
+  }
+
+  // Titelwert + Farbe
+  valueEl.textContent = formatCurrency(total);
+  valueEl.style.color = total < 0 ? '#ff4757' : '#2ed573';
+
+  const ctx = canvas.getContext('2d');
+
+  if (netBudgetChart) {
+    netBudgetChart.destroy();
+  }
+
+  // Farben pro Schritt (blau für +, rot für -)
+  const barColors = data.map(([start, end]) =>
+    (end - start) < 0 ? '#ff4757' : '#2e86de'
+  );
+
+  netBudgetChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Nettobudget',
+        data,                  // Floating Bars: [start, end][web:285]
+        backgroundColor: barColors
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: false }
+      },
+      scales: {
+        x: {
+          stacked: false
+        },
+        y: {
+          ticks: {
+            callback: (value) => formatCurrency(value)
+          }
+        }
+      }
+    }
+  });
 }
