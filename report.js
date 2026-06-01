@@ -43,6 +43,26 @@ const monthNames = {
 
 document.addEventListener('DOMContentLoaded', initReport);
 
+function bindEnterToButton(inputSelectorOrList, buttonId) {
+  const button = document.getElementById(buttonId);
+  if (!button) return;
+
+  const inputs = typeof inputSelectorOrList === 'string'
+    ? document.querySelectorAll(inputSelectorOrList)
+    : inputSelectorOrList;
+
+  if (!inputs || !inputs.length) return;
+
+  inputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        button.click();
+      }
+    });
+  });
+}
+
 function initReport() {
   // Formular-Felder
   const dateInput = document.getElementById('date');
@@ -132,6 +152,20 @@ function initReport() {
     expenseTableBody.addEventListener('click', handleExpenseTableClick);
   }
 
+  // --- Enter-Handling ---
+
+  // Neue Ausgabe hinzufügen: Enter in einem der drei Felder → "Hinzufügen"
+  bindEnterToButton('#date, #category, #amount', 'submitBtn');
+
+  // Ausgabe bearbeiten: Enter in einem der drei Edit-Felder → "Speichern"
+  bindEnterToButton('#editDate, #editCategory, #editAmount', 'saveBtn');
+
+  // Titel bearbeiten: Enter im Titel-Input → "Speichern"
+  bindEnterToButton('#editTitleInput', 'saveTitleBtn');
+
+  // Budget-Modal (falls im Report): Enter im Budget-Feld → "Speichern"
+  bindEnterToButton('#budgetInput', 'saveBudgetBtn');
+  
   loadReport();
   loadBudgetHistory();
   loadCategories();
