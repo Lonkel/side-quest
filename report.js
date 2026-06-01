@@ -1138,7 +1138,7 @@ function renderNetBudgetChart() {
           type: 'line',
           label: 'Verlauf',
           data: lineValues,
-          borderColor: '#ffffff',
+          borderColor: '#000000',
           borderWidth: 3,            // dicke Linie
           pointRadius: 0,
           pointHitRadius: 5,
