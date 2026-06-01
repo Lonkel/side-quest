@@ -905,12 +905,13 @@ function renderCategoryPieChart() {
   }
 
   categoryPieChart = new Chart(ctx, {
-    type: 'pie',
+    // WICHTIG: spezieller Chart-Typ des Plugins
+    type: 'outlabeledPie',
     data: {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: backgroundColors,
+        backgroundColor,
         borderColor: '#1f2121',
         borderWidth: 2
       }]
@@ -919,60 +920,35 @@ function renderCategoryPieChart() {
       responsive: true,
       maintainAspectRatio: true,
       layout: {
-        padding: 80
+        padding: 40
       },
       plugins: {
         legend: {
           display: false
         },
-        tooltip: {
-          enabled: true,
-          callbacks: {
-            label: function (context) {
-              const value = context.parsed;
-              const percent = ((value / totalSum) * 100).toFixed(1);
-              return `${context.label}: ${formatCurrency(value)} (${percent}%)`;
-            }
-          }
-        },
-        datalabels: {
-          color: '#ffffff',
-          backgroundColor: 'transparent',
-          borderWidth: 0,
-          font: {
-            size: 11,
-            weight: 'bold'
-          },
-          formatter: (value, context) => {
+        // Labels außen + Linien
+        outlabels: {
+          // Text pro Segment
+          text: (ctx) => {
+            const value = ctx.raw;
+            const label = ctx.chart.data.labels[ctx.dataIndex];
             const percent = ((value / totalSum) * 100).toFixed(1);
-            const label = context.chart.data.labels[context.dataIndex];
-            return `${label}\n${percent}%`;
+            return `${label} ${percent}%`;
           },
-          textAlign: function (context) {
-            const index = context.dataIndex;
-            const meta = context.chart.getDatasetMeta(0);
-            const element = meta.data[index];
-            const angle = (element.startAngle + element.endAngle) / 2;
-            const normalizedAngle = angle % (2 * Math.PI);
-            return normalizedAngle < Math.PI ? 'left' : 'right';
-          },
-          anchor: 'end',
-          align: function (context) {
-            const index = context.dataIndex;
-            const meta = context.chart.getDatasetMeta(0);
-            const element = meta.data[index];
-            const angle = (element.startAngle + element.endAngle) / 2;
-            const normalizedAngle = angle % (2 * Math.PI);
-            return normalizedAngle < Math.PI ? 'start' : 'end';
-          },
-          offset: 10,
-          clamp: false,
-          clip: false,
-          padding: 4
+          color: '#ffffff',
+          backgroundColor: 'rgba(0,0,0,0.6)',  // Box hinter dem Text; auf 'transparent' setzen, wenn du nur Text willst
+          borderRadius: 4,
+          lineColor: '#cccccc',                 // Linienfarbe wie im Excel-Beispiel
+          lineWidth: 1.5,
+          stretch: 35,                          // Wie weit die Labels nach außen „gezogen“ werden
+          font: {
+            resizable: true,
+            minSize: 10,
+            maxSize: 14
+          }
         }
       }
-    },
-    plugins: [ChartDataLabels]
+    }
   });
 }
 
