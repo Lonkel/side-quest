@@ -8,6 +8,7 @@ if (!reportId) {
 }
 
 let budgets = [];
+let editingYearMonth = null;
 
 const monthNames = {
   '01': 'Januar', '02': 'Februar', '03': 'März', '04': 'April',
@@ -15,24 +16,79 @@ const monthNames = {
   '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Dezember'
 };
 
-window.addEventListener('DOMContentLoaded', () => {
-  // Aktuellen Monat vorausfüllen
+document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
-  document.getElementById('budgetYear').value = String(now.getFullYear());
-  document.getElementById('budgetMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+  const yearInput = document.getElementById('budgetYear');
+  const monthInput = document.getElementById('budgetMonth');
 
-  // Buttons - exakt wie categories.js
-  document.getElementById('backBtn').addEventListener('click', () => {
-    window.location.href = `/report.html?report_id=${reportId}`;
-  });
+  if (yearInput) yearInput.value = String(now.getFullYear());
+  if (monthInput) monthInput.value = String(now.getMonth() + 1).padStart(2, '0');
 
-  document.getElementById('addBudgetBtn').addEventListener('click', addBudget);
-  document.getElementById('resetBtn').addEventListener('click', clearForm);
-  document.getElementById('saveBtn').addEventListener('click', saveEdit);
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
-
+  wireStaticEvents();
   loadBudgets();
 });
+
+function wireStaticEvents() {
+  const backBtn = document.getElementById('backBtn');
+  const addBtn = document.getElementById('addBudgetBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const tableBody = document.getElementById('budgetTable');
+
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = `/report.html?report_id=${encodeURIComponent(reportId)}`;
+    });
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addBudget();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearForm();
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveEdit();
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
+  }
+
+  // Event Delegation: Edit/Delete in der Tabelle
+  if (tableBody) {
+    tableBody.addEventListener('click', (e) => {
+      const button = e.target.closest('button');
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const ym = button.dataset.yearMonth;
+      if (!ym) return;
+
+      if (action === 'edit') {
+        openEditModal(ym);
+      } else if (action === 'delete') {
+        deleteBudget(ym);
+      }
+    });
+  }
+}
 
 async function loadBudgets() {
   try {
@@ -56,9 +112,15 @@ async function loadBudgets() {
 }
 
 async function addBudget() {
-  const year = document.getElementById('budgetYear').value;
-  const month = document.getElementById('budgetMonth').value;
-  const amount = parseFloat(document.getElementById('budgetAmount').value);
+  const yearInput = document.getElementById('budgetYear');
+  const monthInput = document.getElementById('budgetMonth');
+  const amountInput = document.getElementById('budgetAmount');
+
+  if (!yearInput || !monthInput || !amountInput) return;
+
+  const year = yearInput.value;
+  const month = monthInput.value.padStart(2, '0');
+  const amount = parseFloat(amountInput.value);
 
   if (!year || !month || isNaN(amount) || amount < 0) {
     alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
@@ -66,10 +128,11 @@ async function addBudget() {
   }
 
   const yearMonth = `${year}-${month}`;
-  const exists = budgets.some(b => b.year_month === yearMonth);
+  const exists = budgets.some((b) => b.year_month === yearMonth);
 
   if (exists) {
-    if (!confirm('Für diesen Monat existiert bereits ein Budget. Überschreiben?')) return;
+    const overwrite = confirm('Für diesen Monat existiert bereits ein Budget. Überschreiben?');
+    if (!overwrite) return;
   }
 
   try {
@@ -95,16 +158,15 @@ async function addBudget() {
 
 function renderTable() {
   const tbody = document.getElementById('budgetTable');
+  if (!tbody) return;
 
   if (!budgets || budgets.length === 0) {
     tbody.innerHTML = '<tr class="empty-state"><td colspan="4">Keine Budgets vorhanden.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = budgets.map(b => {
-    const parts = b.year_month.split('-');
-    const year = parts[0];
-    const month = parts[1];
+  const rows = budgets.map((b) => {
+    const [year, month] = b.year_month.split('-');
     const monthName = monthNames[month] || month;
 
     return `
@@ -113,33 +175,54 @@ function renderTable() {
         <td>${monthName}</td>
         <td class="text-right"><strong>${formatCurrency(b.budget_amount)}</strong></td>
         <td class="text-right action-buttons">
-          <button class="icon-btn icon-edit" onclick="openEditModal('${b.year_month}')" title="Bearbeiten">✎</button>
-          <button class="icon-btn icon-delete" onclick="deleteBudget('${b.year_month}')" title="Löschen">✕</button>
+          <button
+            type="button"
+            class="icon-btn icon-edit"
+            data-action="edit"
+            data-year-month="${b.year_month}"
+            title="Bearbeiten"
+          >✎</button>
+          <button
+            type="button"
+            class="icon-btn icon-delete"
+            data-action="delete"
+            data-year-month="${b.year_month}"
+            title="Löschen"
+          >✕</button>
         </td>
       </tr>
     `;
-  }).join('');
+  });
+
+  tbody.innerHTML = rows.join('');
 }
 
 function openEditModal(yearMonth) {
-  const found = budgets.find(b => b.year_month === yearMonth);
+  const found = budgets.find((b) => b.year_month === yearMonth);
   if (!found) return;
 
-  window._editingYearMonth = yearMonth;
-  document.getElementById('editBudgetAmount').value = found.budget_amount;
-  document.getElementById('editModal').classList.add('active');
+  editingYearMonth = yearMonth;
+
+  const amountInput = document.getElementById('editBudgetAmount');
+  const modal = document.getElementById('editModal');
+
+  if (amountInput) amountInput.value = found.budget_amount;
+  if (modal) modal.classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById('editModal').classList.remove('active');
-  window._editingYearMonth = null;
+  const modal = document.getElementById('editModal');
+  if (modal) modal.classList.remove('active');
+  editingYearMonth = null;
 }
 
 async function saveEdit() {
-  const yearMonth = window._editingYearMonth;
-  if (!yearMonth) return;
+  if (!editingYearMonth) return;
 
-  const amount = parseFloat(document.getElementById('editBudgetAmount').value);
+  const amountInput = document.getElementById('editBudgetAmount');
+  if (!amountInput) return;
+
+  const amount = parseFloat(amountInput.value);
 
   if (isNaN(amount) || amount < 0) {
     alert('Bitte einen gültigen Betrag eingeben.');
@@ -151,7 +234,7 @@ async function saveEdit() {
       .from('budget_history')
       .update({ budget_amount: amount })
       .eq('report_id', reportId)
-      .eq('year_month', yearMonth);
+      .eq('year_month', editingYearMonth);
 
     if (error) {
       console.error('Fehler beim Aktualisieren:', error);
@@ -167,7 +250,8 @@ async function saveEdit() {
 }
 
 async function deleteBudget(yearMonth) {
-  if (!confirm('Budget wirklich löschen?')) return;
+  const confirmed = confirm('Budget wirklich löschen?');
+  if (!confirmed) return;
 
   try {
     const { error } = await db
@@ -190,14 +274,15 @@ async function deleteBudget(yearMonth) {
 
 function clearForm() {
   const now = new Date();
-  document.getElementById('budgetYear').value = String(now.getFullYear());
-  document.getElementById('budgetMonth').value = String(now.getMonth() + 1).padStart(2, '0');
-  document.getElementById('budgetAmount').value = '';
+  const yearInput = document.getElementById('budgetYear');
+  const monthInput = document.getElementById('budgetMonth');
+  const amountInput = document.getElementById('budgetAmount');
+
+  if (yearInput) yearInput.value = String(now.getFullYear());
+  if (monthInput) monthInput.value = String(now.getMonth() + 1).padStart(2, '0');
+  if (amountInput) amountInput.value = '';
 }
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
 }
-
-window.openEditModal = openEditModal;
-window.deleteBudget = deleteBudget;
