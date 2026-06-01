@@ -1113,15 +1113,35 @@ function renderNetBudgetChart() {
     (end - start) < 0 ? '#ff4757' : '#2e86de'
   );
 
+  // Linie über den Balken (nimmt die Endwerte)
+  const lineValues = data.map(([start, end]) => end);
+
   netBudgetChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        label: 'Nettobudget',
-        data,                  // Floating Bars: [start, end][web:285]
-        backgroundColor: barColors
-      }]
+      datasets: [
+        {
+          // Waterfall-Balken
+          label: 'Nettobudget',
+          data,                      // [[start, end], ...] => Floating Bars[web:285]
+          backgroundColor: barColors,
+          order: 1
+        },
+        {
+          // Verbindende Linie
+          type: 'line',
+          label: 'Verlauf',
+          data: lineValues,
+          borderColor: '#ffffff',    // oder z.B. '#f5f5f5'
+          borderWidth: 3,            // hier wird die Linie „dick“
+          pointRadius: 0,
+          pointHitRadius: 5,
+          fill: false,
+          tension: 0,
+          order: 2
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -1142,4 +1162,3 @@ function renderNetBudgetChart() {
       }
     }
   });
-}
