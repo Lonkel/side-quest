@@ -842,7 +842,7 @@ function renderCategoryPieChart() {
   // Beträge pro Kategorie sauber aufsummieren (alles in Number casten)
   const sumsByCategory = filtered.reduce((acc, exp) => {
     const catKey = exp.category || 'other';
-    const amount = Number(exp.amount) || 0;
+    const amount = Number(exp.amount) || 0; // Supabase liefert 0.00 → Number(0.00) passt
     acc[catKey] = (acc[catKey] || 0) + amount;
     return acc;
   }, {});
@@ -887,26 +887,26 @@ function renderCategoryPieChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // Canvas-Größe kommt aus CSS
+      maintainAspectRatio: false, // Canvas-Größe über CSS steuern
       layout: {
         padding: {
           top: 40,
-          right: 100,   // mehr Platz rechts
+          right: 120,   // Platz für Labels
           bottom: 40,
-          left: 100     // mehr Platz links
+          left: 120
         }
       },
-      // vom Outlabels-Plugin: Chart etwas verkleinern, damit außen mehr Platz ist
-      zoomOutPercentage: 60, // ggf. feinjustieren (50–70)
+      // Outlabels-Plugin-Option, verkleinert den Pie in der Mitte
+      zoomOutPercentage: 60,
       plugins: {
         legend: {
           display: false
         },
         outlabels: {
+          // ctx.percent kommt direkt vom Plugin, nicht selbst rechnen
           text: (ctx) => {
-            const raw = Number(ctx.raw) || 0;
-            const percent = totalSum ? ((raw / totalSum) * 100).toFixed(1) : '0.0';
             const label = ctx.chart.data.labels[ctx.dataIndex];
+            const percent = (ctx.percent || 0).toFixed(1); // ctx.percent ist schon 0–100.[web:258]
             return `${label} ${percent}%`;
           },
           color: '#ffffff',
@@ -914,7 +914,7 @@ function renderCategoryPieChart() {
           borderRadius: 4,
           lineColor: '#cccccc',
           lineWidth: 1.5,
-          stretch: 45,  // Labels weiter vom Kreis weg
+          stretch: 45,  // Labels weiter nach außen
           font: {
             resizable: true,
             minSize: 10,
