@@ -946,7 +946,7 @@ function renderCategoryPieChart() {
       }
     }
   }
-});
+}
 // ===== SUMMARY =====
 
 function formatCurrency(value) {
