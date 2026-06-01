@@ -26,6 +26,47 @@ let budgetHistoryMap = {}; // { "2026-01": 1000, ... }
 let categoryPieChart = null;
 let netBudgetChart = null;
 
+// Plugin zeichnet Verbindungslinien von rechter Balkenkante zu linker Balkenkante
+const netBudgetConnectorPlugin = {
+  id: 'netBudgetConnector',
+  afterDatasetsDraw(chart, args, opts) {
+    const datasetIndex = opts.datasetIndex ?? 0;
+    const meta = chart.getDatasetMeta(datasetIndex);
+    const bars = meta.data;
+    const ctx = chart.ctx;
+
+    if (!bars || bars.length < 2) return;
+
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';   // schwarz
+    ctx.lineWidth  = opts.lineWidth || 3;        // Linienstärke
+
+    for (let i = 0; i < bars.length - 1; i++) {
+      const current = bars[i];
+      const next = bars[i + 1];
+
+      const c = current.getProps(['x', 'y', 'base', 'width'], true);
+      const n = next.getProps(['x', 'y', 'base', 'width'], true);
+
+      // oberen Rand der Balken nehmen (bei negativen Werten ist das kleinere Y)
+      const currentTopY = Math.min(c.y, c.base);
+      const nextTopY    = Math.min(n.y, n.base);
+
+      const currentRightX = c.x + c.width / 2;
+      const nextLeftX     = n.x - n.width / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(currentRightX, currentTopY);
+      ctx.lineTo(nextLeftX, nextTopY);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+};
+
+Chart.register(netBudgetConnectorPlugin);
+
 // Monatsnamen
 const monthNames = {
   '01': 'Januar',
@@ -1121,7 +1162,7 @@ function renderNetBudgetChart() {
   // Linie über den Balken (nimmt die Endwerte)
   const lineValues = data.map(([start, end]) => end);
 
-  netBudgetChart = new Chart(ctx, {
+    netBudgetChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
@@ -1131,20 +1172,9 @@ function renderNetBudgetChart() {
           label: 'Nettobudget',
           data,                      // [[start, end], ...] => Floating Bars
           backgroundColor: barColors,
+          borderColor: '#000000',    // optional: Rahmen um Balken
+          borderWidth: 1,
           order: 1
-        },
-        {
-          // Verbindende Linie
-          type: 'line',
-          label: 'Verlauf',
-          data: lineValues,
-          borderColor: '#000000',
-          borderWidth: 3,            // dicke Linie
-          pointRadius: 0,
-          pointHitRadius: 5,
-          fill: false,
-          tension: 0,
-          order: 2
         }
       ]
     },
@@ -1153,7 +1183,13 @@ function renderNetBudgetChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        title: { display: false }
+        title: { display: false },
+        // hier konfigurieren wir das Plugin
+        netBudgetConnector: {
+          datasetIndex: 0,        // Balken-Dataset
+          color: '#000000',       // Linienfarbe
+          lineWidth: 3            // dicke Linie
+        }
       },
       scales: {
         x: {
@@ -1167,4 +1203,4 @@ function renderNetBudgetChart() {
       }
     }
   });
-}
+ }
