@@ -1004,6 +1004,7 @@ function updateSummary() {
     return;
   }
 
+  // Übersicht / Gesamtjahr: KPIs auf 0
   if (selectedYear === 'all' || selectedMonth === 'overview') {
     totalMonthEl.textContent = formatCurrency(0);
     totalWithoutEl.textContent = formatCurrency(0);
@@ -1015,13 +1016,13 @@ function updateSummary() {
   const monthPrefix = `${selectedYear}-${selectedMonth}`;
 
   const monthExpenses = expenses
-    .filter(e => e.date.startsWith(monthPrefix))
-    .reduce((sum, e) => sum + e.amount, 0);
+    .filter(e => e.date && e.date.startsWith(monthPrefix))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   const monthExpensesWithoutFixedEtf = expenses
-    .filter(e => e.date.startsWith(monthPrefix))
+    .filter(e => e.date && e.date.startsWith(monthPrefix))
     .filter(e => e.category !== 'fixed' && e.category !== 'etf')
-    .reduce((sum, e) => sum + e.amount, 0);
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
@@ -1032,11 +1033,13 @@ function updateSummary() {
   remainingEl.style.color = remainingBudget < 0 ? '#ff4757' : '#2ed573';
 }
 
+// ===== CHARTS: NETTOBUDGET =====
+
 // Liefert für das aktuelle selectedYear die Monats-Schritte fürs Waterfall-Chart
 function getNetBudgetSeriesForYear() {
   const ymSet = new Set();
 
-  // Jahr-Monat Keys einsammeln, gefiltert nach selectedYear (oder alle)
+  // Jahr-Monat-Keys einsammeln, gefiltert nach selectedYear (oder alle)
   expenses.forEach(exp => {
     if (!exp.date || typeof exp.date !== 'string') return;
     const [y, m] = exp.date.split('-');
@@ -1047,7 +1050,7 @@ function getNetBudgetSeriesForYear() {
     }
   });
 
-  const keys = Array.from(ymSet).sort(); // z.B. "2025-01", "2025-02", ...
+  const keys = Array.from(ymSet).sort(); // z. B. "2025-01", "2025-02", ...
 
   const labels = [];
   const data = [];
@@ -1069,7 +1072,9 @@ function getNetBudgetSeriesForYear() {
 
     const start = cumulative;
     cumulative += net;
-    data.push([start, cumulative]); // Floating Bar [von, bis][web:285]
+
+    // Floating Bar: [von, bis]
+    data.push([start, cumulative]);
 
     const monthLabel = monthNames[m] || m;
     labels.push(selectedYear === 'all' ? `${monthLabel.slice(0, 3)} ${y}` : monthLabel);
@@ -1124,7 +1129,7 @@ function renderNetBudgetChart() {
         {
           // Waterfall-Balken
           label: 'Nettobudget',
-          data,                      // [[start, end], ...] => Floating Bars[web:285]
+          data,                      // [[start, end], ...] => Floating Bars
           backgroundColor: barColors,
           order: 1
         },
@@ -1133,8 +1138,8 @@ function renderNetBudgetChart() {
           type: 'line',
           label: 'Verlauf',
           data: lineValues,
-          borderColor: '#ffffff',    // oder z.B. '#f5f5f5'
-          borderWidth: 3,            // hier wird die Linie „dick“
+          borderColor: '#ffffff',
+          borderWidth: 3,            // dicke Linie
           pointRadius: 0,
           pointHitRadius: 5,
           fill: false,
@@ -1156,9 +1161,10 @@ function renderNetBudgetChart() {
         },
         y: {
           ticks: {
-            callback: (value) => formatCurrency(value)
+            callback: (value) => formatCurrency(Number(value) || 0)
           }
         }
       }
     }
   });
+}
