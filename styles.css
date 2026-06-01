@@ -505,6 +505,12 @@ tbody tr.dragging {
   color: var(--color-text-secondary);
 }
 
+#categoryPieChart {
+  width: 800px;
+  height: 500px;
+  max-width: 100%;
+}
+
 /* ===== EMPTY STATE ===== */
 .empty-state {
   text-align: center;
