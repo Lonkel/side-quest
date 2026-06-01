@@ -839,9 +839,11 @@ function renderCategoryPieChart() {
     return;
   }
 
+  // Beträge pro Kategorie sauber aufsummieren (alles in Number casten)
   const sumsByCategory = filtered.reduce((acc, exp) => {
     const catKey = exp.category || 'other';
-    acc[catKey] = (acc[catKey] || 0) + exp.amount;
+    const amount = Number(exp.amount) || 0;
+    acc[catKey] = (acc[catKey] || 0) + amount;
     return acc;
   }, {});
 
@@ -855,12 +857,12 @@ function renderCategoryPieChart() {
     const color = cat ? cat.color : '#a7a9a9';
 
     labels.push(label);
-    values.push(total);
+    values.push(Number(total) || 0);
     backgroundColors.push(color);
   });
 
   const totalSum = values.reduce((s, v) => s + v, 0);
-  if (totalSum <= 0) {
+  if (!Number.isFinite(totalSum) || totalSum <= 0) {
     if (categoryPieChart) {
       categoryPieChart.destroy();
       categoryPieChart = null;
@@ -885,19 +887,26 @@ function renderCategoryPieChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false, // Canvas-Größe kommt aus CSS
       layout: {
-        padding: 40
+        padding: {
+          top: 40,
+          right: 100,   // mehr Platz rechts
+          bottom: 40,
+          left: 100     // mehr Platz links
+        }
       },
+      // vom Outlabels-Plugin: Chart etwas verkleinern, damit außen mehr Platz ist
+      zoomOutPercentage: 60, // ggf. feinjustieren (50–70)
       plugins: {
         legend: {
           display: false
         },
         outlabels: {
           text: (ctx) => {
-            const value = ctx.raw;
+            const raw = Number(ctx.raw) || 0;
+            const percent = totalSum ? ((raw / totalSum) * 100).toFixed(1) : '0.0';
             const label = ctx.chart.data.labels[ctx.dataIndex];
-            const percent = ((value / totalSum) * 100).toFixed(1);
             return `${label} ${percent}%`;
           },
           color: '#ffffff',
@@ -905,7 +914,7 @@ function renderCategoryPieChart() {
           borderRadius: 4,
           lineColor: '#cccccc',
           lineWidth: 1.5,
-          stretch: 35,
+          stretch: 45,  // Labels weiter vom Kreis weg
           font: {
             resizable: true,
             minSize: 10,
@@ -916,7 +925,6 @@ function renderCategoryPieChart() {
     }
   });
 }
-
 // ===== SUMMARY =====
 
 function formatCurrency(value) {
