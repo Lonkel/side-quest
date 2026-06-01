@@ -952,17 +952,19 @@ function formatCurrency(value) {
 }
 
 function updateSummary() {
-  const totalMonthEl = document.getElementById('totalMonth');
-  const totalWithoutEl = document.getElementById('totalMonthWithoutFixedEtf');
-  const budgetMonthEl = document.getElementById('budgetMonth');
-  const remainingEl = document.getElementById('remainingBudget');
+  const totalMonthEl = document.getElementById('totalMonth');                    // Ausgaben Monat
+  const totalWithoutEl = document.getElementById('totalMonthWithoutFixedEtf');  // Ausgaben ohne Fix/ETF
+  const remainingEl = document.getElementById('remainingBudget');               // Restliches Budget
 
-  if (!totalMonthEl || !totalWithoutEl || !budgetMonthEl || !remainingEl) return;
+  // Wenn die KPI-Elemente nicht da sind, still aussteigen
+  if (!totalMonthEl || !totalWithoutEl || !remainingEl) {
+    return;
+  }
 
+  // Übersicht / alle Jahre: KPIs auf 0
   if (selectedYear === 'all' || selectedMonth === 'overview') {
     totalMonthEl.textContent = formatCurrency(0);
     totalWithoutEl.textContent = formatCurrency(0);
-    budgetMonthEl.textContent = formatCurrency(0);
     remainingEl.textContent = formatCurrency(0);
     remainingEl.style.color = '#f5f5f5';
     return;
@@ -982,9 +984,9 @@ function updateSummary() {
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
 
+  // KPIs setzen
   totalMonthEl.textContent = formatCurrency(monthExpenses);
   totalWithoutEl.textContent = formatCurrency(monthExpensesWithoutFixedEtf);
-  budgetMonthEl.textContent = formatCurrency(remainingBudget);
   remainingEl.textContent = formatCurrency(remainingBudget);
   remainingEl.style.color = remainingBudget < 0 ? '#ff4757' : '#2ed573';
 }
