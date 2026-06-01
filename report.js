@@ -905,52 +905,48 @@ function renderCategoryPieChart() {
   }
 
   categoryPieChart = new Chart(ctx, {
-    type: 'pie',      // Standard-Pie-Typ,
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor,
-        borderColor: '#1f2121',
-        borderWidth: 2
-      }]
+  type: 'pie',
+  data: {
+    labels,
+    datasets: [{
+      data: values,
+      backgroundColor: backgroundColors,  // <-- Fix: richtige Variable zuweisen
+      borderColor: '#1f2121',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    layout: {
+      padding: 40
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      layout: {
-        padding: 40
+    plugins: {
+      legend: {
+        display: false
       },
-      plugins: {
-        legend: {
-          display: false
+      outlabels: {
+        text: (ctx) => {
+          const value = ctx.raw;
+          const label = ctx.chart.data.labels[ctx.dataIndex];
+          const percent = ((value / totalSum) * 100).toFixed(1);
+          return `${label} ${percent}%`;
         },
-        // Labels außen + Linien
-        outlabels: {
-          // Text pro Segment
-          text: (ctx) => {
-            const value = ctx.raw;
-            const label = ctx.chart.data.labels[ctx.dataIndex];
-            const percent = ((value / totalSum) * 100).toFixed(1);
-            return `${label} ${percent}%`;
-          },
-          color: '#ffffff',
-          backgroundColor: 'rgba(0,0,0,0.6)',  // Box hinter dem Text; auf 'transparent' setzen, wenn du nur Text willst
-          borderRadius: 4,
-          lineColor: '#cccccc',                 // Linienfarbe wie im Excel-Beispiel
-          lineWidth: 1.5,
-          stretch: 35,                          // Wie weit die Labels nach außen „gezogen“ werden
-          font: {
-            resizable: true,
-            minSize: 10,
-            maxSize: 14
-          }
+        color: '#ffffff',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderRadius: 4,
+        lineColor: '#cccccc',
+        lineWidth: 1.5,
+        stretch: 35,
+        font: {
+          resizable: true,
+          minSize: 10,
+          maxSize: 14
         }
       }
     }
-  });
-}
-
+  }
+});
 // ===== SUMMARY =====
 
 function formatCurrency(value) {
