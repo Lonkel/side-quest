@@ -16,6 +16,26 @@ const monthNames = {
   '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Dezember'
 };
 
+function bindEnterToButton(inputSelectorOrList, buttonId) {
+  const button = document.getElementById(buttonId);
+  if (!button) return;
+
+  const inputs = typeof inputSelectorOrList === 'string'
+    ? document.querySelectorAll(inputSelectorOrList)
+    : inputSelectorOrList;
+
+  if (!inputs || !inputs.length) return;
+
+  inputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        button.click();
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
   const yearInput = document.getElementById('budgetYear');
@@ -23,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (yearInput) yearInput.value = String(now.getFullYear());
   if (monthInput) monthInput.value = String(now.getMonth() + 1).padStart(2, '0');
+
+  bindEnterToButton('#budgetYear, #budgetMonth, #budgetAmount', 'addBudgetBtn');
+  bindEnterToButton('#editBudgetAmount', 'saveBtn');
 
   wireStaticEvents();
   loadBudgets();
