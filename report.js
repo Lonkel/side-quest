@@ -26,7 +26,7 @@ let budgetHistoryMap = {}; // { "2026-01": 1000, ... }
 let categoryPieChart = null;
 let netBudgetChart = null;
 
-// Plugin zeichnet Verbindungslinien von rechter Balkenkante zu linker Balkenkante
+// Plugin zeichnet Verbindungslinien von Endwert -> Startwert der nächsten Bar
 const netBudgetConnectorPlugin = {
   id: 'netBudgetConnector',
   afterDatasetsDraw(chart, args, opts) {
@@ -35,29 +35,51 @@ const netBudgetConnectorPlugin = {
     const bars = meta.data;
     const ctx = chart.ctx;
 
-    if (!bars || bars.length < 2) return;
+    if (!bars || bars.length < 1) return;
+
+    // Daten der Bars: [[start, end], ...]
+    const rawData = chart.data.datasets[datasetIndex].data || [];
+    if (!rawData.length) return;
+
+    // Levels berechnen: levels[0] = Startlevel vor erster Bar
+    const levels = [];
+    const firstVal = rawData[0];
+    if (Array.isArray(firstVal) && firstVal.length === 2) {
+      levels.push(firstVal[0]); // Start vor erster Bar
+    } else {
+      return; // Datenformat unerwartet
+    }
+    rawData.forEach(([start, end]) => {
+      levels.push(end);
+    });
+
+    const yScale = chart.scales.y;
+    if (!yScale) return;
 
     ctx.save();
-    ctx.strokeStyle = opts.color || '#000000';   // schwarz
-    ctx.lineWidth  = opts.lineWidth || 3;        // Linienstärke
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth  = opts.lineWidth || 3;
 
     for (let i = 0; i < bars.length - 1; i++) {
       const current = bars[i];
       const next = bars[i + 1];
 
-      const c = current.getProps(['x', 'y', 'base', 'width'], true);
-      const n = next.getProps(['x', 'y', 'base', 'width'], true);
+      const c = current.getProps(['x', 'width'], true);
+      const n = next.getProps(['x', 'width'], true);
 
-      // oberen Rand der Balken nehmen (bei negativen Werten ist das kleinere Y)
-      const currentTopY = Math.min(c.y, c.base);
-      const nextTopY    = Math.min(n.y, n.base);
+      // Endlevel des aktuellen Balkens, Startlevel des nächsten
+      const endLevelCurrent   = levels[i + 1];
+      const startLevelNext    = levels[i + 1]; // gleicher Level, da nächste Bar bei diesem Level startet
 
       const currentRightX = c.x + c.width / 2;
       const nextLeftX     = n.x - n.width / 2;
 
+      const currentY = yScale.getPixelForValue(endLevelCurrent);
+      const nextY    = yScale.getPixelForValue(startLevelNext);
+
       ctx.beginPath();
-      ctx.moveTo(currentRightX, currentTopY);
-      ctx.lineTo(nextLeftX, nextTopY);
+      ctx.moveTo(currentRightX, currentY);
+      ctx.lineTo(nextLeftX, nextY);
       ctx.stroke();
     }
 
@@ -66,7 +88,6 @@ const netBudgetConnectorPlugin = {
 };
 
 Chart.register(netBudgetConnectorPlugin);
-
 // Monatsnamen
 const monthNames = {
   '01': 'Januar',
