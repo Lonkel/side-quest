@@ -597,12 +597,6 @@ async function loadExpenses() {
     console.log('DEBUG loadExpenses rows:', data);
 
     expenses = data || [];
-    console.log(
-      'DEBUG all expense dates:',
-      expenses
-        .map(e => `${e.id}:${e.date}`)
-        .sort()
-    );
     renderTable();
     updateSummary();
     renderYearTabs();
