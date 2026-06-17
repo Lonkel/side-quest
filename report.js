@@ -609,17 +609,29 @@ async function loadExpenses() {
 }
 
 function getFilteredExpenses() {
-  let filtered = expenses;
+  return expenses
+    .filter(e => {
+      if (!e.date) return false;
 
-  if (selectedYear !== 'all') {
-    filtered = filtered.filter(e => e.date.startsWith(selectedYear));
-  }
+      const d = new Date(e.date);
+      if (!Number.isFinite(d.getTime())) return false; // kaputtes Datum ignorieren
 
-  if (selectedYear !== 'all' && selectedMonth !== 'overview') {
-    filtered = filtered.filter(e => e.date.startsWith(`${selectedYear}-${selectedMonth}`));
-  }
+      const year  = String(d.getFullYear());
+      const month = String(d.getMonth() + 1).padStart(2, '0');
 
-  return filtered.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+      // Jahr-Filter
+      if (selectedYear !== 'all' && year !== selectedYear) {
+        return false;
+      }
+
+      // Monats-Filter (nur wenn nicht "overview")
+      if (selectedYear !== 'all' && selectedMonth !== 'overview' && month !== selectedMonth) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 // ===== CRUD: ADD / EDIT / DELETE =====
