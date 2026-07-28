@@ -365,6 +365,14 @@ tbody tr.dragging {
   font-size: 24px;
 }
 
+/* Rückzahlungen (Kategorie income) – Betrag grün highlighten */
+.amount-income strong {
+  color: #2ed573;
+  background-color: rgba(46, 213, 115, 0.18);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* ===== BADGES & STATUS ===== */
 .status-badge {
   display: inline-block;
