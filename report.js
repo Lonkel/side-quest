@@ -878,7 +878,9 @@ function renderTable() {
             ${label}
           </span>
         </td>
-        <td class="text-right"><strong>${formatCurrency(expense.amount)}</strong></td>
+        <td class="text-right ${expense.category === 'income' ? 'amount-income' : ''}">
+          <strong>${formatCurrency(expense.amount)}</strong>
+        </td>
         <td class="text-right action-buttons">
           <button
             type="button"
@@ -964,7 +966,7 @@ function renderCategoryPieChart() {
   if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
-  const filtered = getFilteredExpenses();
+  const filtered = getFilteredExpenses().filter(e => e.category !== 'income');
 
   if (!filtered || filtered.length === 0) {
     if (categoryPieChart) {
@@ -1096,7 +1098,14 @@ function updateSummary() {
   const monthExpensesWithoutFixedEtf = expenses
     .filter(e => e.date && e.date.startsWith(monthPrefix))
     .filter(e => e.category !== 'fixed' && e.category !== 'etf')
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    .reduce((sum, e) => {
+    const val = Number(e.amount) || 0;
+    if (e.category === 'income') {
+      // Rückzahlung → Ausgaben reduzieren
+      return sum - val;
+    }
+    return sum + val;
+  }, 0);
 
   const monthlyBudget = getBudgetForMonth(selectedYear, selectedMonth);
   const remainingBudget = monthlyBudget - monthExpensesWithoutFixedEtf;
@@ -1138,7 +1147,13 @@ function getNetBudgetSeriesForYear() {
     const monthExpensesWithoutFixedEtf = expenses
       .filter(e => e.date && e.date.startsWith(monthPrefix))
       .filter(e => e.category !== 'fixed' && e.category !== 'etf')
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      .reduce((sum, e) => {
+    const val = Number(e.amount) || 0;
+    if (e.category === 'income') {
+      return sum - val;   // Rückzahlung reduziert Monat
+    }
+    return sum + val;
+  }, 0);
 
     // Budget aus budgetHistoryMap
     const monthlyBudget = getBudgetForMonth(y, m);
