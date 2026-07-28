@@ -145,7 +145,7 @@ async function addBudget() {
   const month = monthInput.value.padStart(2, '0');
   const amount = parseFloat(amountInput.value);
 
-  if (!year || !month || isNaN(amount) || (amount <= 0 && category !== 'income')) {
+  if (!year || !month || isNaN(amount) || amount <= 0) {
     alert('Bitte alle Felder ausfüllen und einen gültigen Betrag eingeben.');
     return;
   }
@@ -247,7 +247,7 @@ async function saveEdit() {
 
   const amount = parseFloat(amountInput.value);
 
-  if (!date || !category || isNaN(amount) || (amount <= 0 && category !== 'income')) {
+  if (!date || !category || isNaN(amount) || amount <= 0) {
     alert('Bitte einen gültigen Betrag eingeben.');
     return;
   }
