@@ -18,7 +18,8 @@ const defaultCategories = [
   { icon: '💵', key: 'cash', name: 'Bargeld', color: '#4caf50' },
   { icon: '✈️', key: 'travel', name: 'Reisen', color: '#9c27b0' },
   { icon: '📈', key: 'etf', name: 'ETF', color: '#2196f3' },
-  { icon: '📌', key: 'other', name: 'Sonstiges', color: '#a7a9a9' }
+  { icon: '📌', key: 'other', name: 'Sonstiges', color: '#a7a9a9' },
+  { icon: '💳', key: 'income', name: 'Rückzahlung', color: '##fbff00' }
 ];
 
 window.addEventListener('DOMContentLoaded', () => {
