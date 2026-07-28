@@ -1210,7 +1210,7 @@ function renderNetBudgetChart() {
   // Linie über den Balken (nimmt die Endwerte)
   const lineValues = data.map(([start, end]) => end);
 
-    netBudgetChart = new Chart(ctx, {
+  netBudgetChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
@@ -1218,9 +1218,9 @@ function renderNetBudgetChart() {
         {
           // Waterfall-Balken
           label: 'Nettobudget',
-          data,                      // [[start, end], ...] => Floating Bars
+          data,                      // [[start, end], ...]
           backgroundColor: barColors,
-          borderColor: '#000000',    // optional: Rahmen um Balken
+          borderColor: '#000000',
           borderWidth: 1,
           order: 1
         }
@@ -1231,12 +1231,40 @@ function renderNetBudgetChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        title: { display: false },
-        // hier konfigurieren wir das Plugin
+        title:  { display: false },
+        tooltip: {
+          callbacks: {
+            // Monatsname als Titel
+            title: (items) => items[0].label,
+
+            // Eigentliche Inhalte des Tooltips
+            label: (context) => {
+              const raw = context.raw;
+
+              if (!Array.isArray(raw) || raw.length < 2) {
+                // Fallback, falls mal kein [start,end]-Array vorliegt
+                const v = Number(context.parsed.y ?? raw) || 0;
+                return `Wert: ${formatCurrency(v)}`;
+              }
+
+              const start = Number(raw[0]) || 0;
+              const end   = Number(raw[1]) || 0;
+              const diff  = end - start;
+
+              // Mehrere Zeilen zurückgeben → jede Zeile eigener Tooltip‑Row[web:378]
+              return [
+                `Start: ${formatCurrency(start)}`,
+                `End:   ${formatCurrency(end)}`,
+                `Betrag: ${formatCurrency(diff)}`
+              ];
+            }
+          }
+        },
+        // Verbindungslinien-Plugin, falls du es verwendest
         netBudgetConnector: {
-          datasetIndex: 0,        // Balken-Dataset
-          color: '#000000',       // Linienfarbe
-          lineWidth: 3            // dicke Linie
+          datasetIndex: 0,
+          color: '#000000',
+          lineWidth: 3
         }
       },
       scales: {
@@ -1251,4 +1279,5 @@ function renderNetBudgetChart() {
       }
     }
   });
- }
+  
+}
