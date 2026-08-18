@@ -532,6 +532,7 @@ function switchYear(e) {
   const year = e.target.dataset.year;
   selectedYear = year;
   selectedMonth = '01';
+  updateOverviewTabLabel();
 
   document.querySelectorAll('.year-tab').forEach(btn => btn.classList.remove('active'));
   e.target.classList.add('active');
@@ -560,6 +561,7 @@ function switchYear(e) {
 
 function switchMonth(e) {
   selectedMonth = e.target.dataset.month;
+  updateOverviewTabLabel();
 
   document.querySelectorAll('.month-tab').forEach(btn => btn.classList.remove('active'));
   e.target.classList.add('active');
