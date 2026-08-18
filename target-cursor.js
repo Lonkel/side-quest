@@ -16,7 +16,7 @@
       '[role="button"]'
     ].join(','),
     spinDuration: 2,
-    hideDefaultCursor: true,
+    hideDefaultCursor: false, //false = normaler Cursor
     hoverDuration: 0.2,
     parallaxOn: true,
     cursorColor: '#ffffff',
