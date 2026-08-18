@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Expense Tracker</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="target-cursor.css">
 </head>
 <body>
   <div class="container">
@@ -188,23 +189,41 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- =========================================================
+     Externe Bibliotheken
+     ========================================================= -->
 
-  <!-- Chart.js 3 -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- Supabase-Client: Datenbankzugriff für supabase.js und report.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- (Optional) Datalabels – falls du es noch irgendwo brauchst -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<!-- Chart.js: Erstellung der Diagramme in report.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Outlabels-Plugin für Chart.js 3 (Leader-Lines + Labels außen) -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-outlabels3@1.3.7/dist/chartjs-plugin-outlabels3.min.js"></script>
+<!-- Chart.js-Plugin: Beschriftungen außerhalb des Kreisdiagramms -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-outlabels3@1.3.7/dist/chartjs-plugin-outlabels3.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-outlabels3"></script>
-  <script src="./report.js"></script>
+<!-- GSAP: Animationen für den Cursor in target-cursor.js -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 
-  <script src="supabase.js"></script>
-  <script src="report.js"></script>
+
+<!-- =========================================================
+     Eigene Anwendungsskripte
+     
+     Reihenfolge:
+     1. supabase.js erstellt den Datenbank-Client "db"
+     2. report.js verwendet "db" und Chart.js
+     3. target-cursor.js verwendet GSAP
+     ========================================================= -->
+
+<!-- Supabase-Konfiguration und Datenbank-Client -->
+<script src="./supabase.js"></script>
+
+<!-- Reports:
+     Ausgaben, Budgets, Tabs, Tabellen und Diagramme -->
+<script src="./report.js"></script>
+
+<!-- Cursor-Snapping für interaktive Elemente -->
+<script src="./target-cursor.js"></script>
+  
 </body>
 </html>
