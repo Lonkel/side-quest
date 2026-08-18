@@ -140,7 +140,6 @@ function updateOverviewTabLabel() {
 
   overviewTab.textContent =
     selectedYear === 'all' ? 'GESAMT' : selectedYear;
-  }
 }
 
 function initReport() {
