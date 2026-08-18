@@ -136,8 +136,10 @@ function updateOverviewTabLabel() {
     '.month-tab[data-month="overview"]'
   );
 
-  if (overviewTab) {
-    overviewTab.textContent = currentYear;
+  if (!overviewTab) return;
+
+  overviewTab.textContent =
+    selectedYear === 'all' ? 'GESAMT' : selectedYear;
   }
 }
 
