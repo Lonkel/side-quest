@@ -2,7 +2,7 @@
 /* Neon-lila Highlight für Elemente unter dem Cursor */
 
 .cursor-highlight {
-  box-shadow: 0 0 0 2px #d400ff;
+  box-shadow: 0 0 0 2px #8a2be2;
   border-radius: 4px;
   transition: box-shadow 120ms ease-out;
 }
